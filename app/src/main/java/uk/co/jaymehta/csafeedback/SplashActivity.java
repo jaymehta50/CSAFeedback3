@@ -11,6 +11,8 @@ import android.accounts.OperationCanceledException;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,6 +40,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +85,8 @@ public class SplashActivity extends Activity {
     private SystemUiHider mSystemUiHider;
     
     private AccountManager mAccountManager;
+
+    private Integer hours_between_renew_token = 3;
 
 
     @Override
@@ -195,49 +200,45 @@ public class SplashActivity extends Activity {
                 String result;
 
                 try {
-                    URL url = new URL("http://jkm50.user.srcf.net/feedback/post/index.php");
-
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setReadTimeout(10000);
-                    conn.setConnectTimeout(15000);
-                    conn.setDoInput(true);
-                    conn.setDoOutput(true);
-
-                    ContentValues values=new ContentValues();
-                    values.put("authtoken", authToken);
-
-                    String towrite = getQuery(values);
-                    conn.setFixedLengthStreamingMode(towrite.length());
-
-                    OutputStream os = conn.getOutputStream();
-
-                    BufferedWriter writer = new BufferedWriter(
-                            new OutputStreamWriter(os, "UTF-8"));
-                    writer.write(towrite);
-                    writer.flush();
-                    writer.close();
-                    os.close();
-
-                    InputStream in = new BufferedInputStream(conn.getInputStream());
-                    java.util.Scanner s = new java.util.Scanner(in).useDelimiter("\\A");
-                    result = s.hasNext() ? s.next() : "";
-
-                    conn.disconnect();
+                    URL url_checkvalid = new URL("http://jkm50.user.srcf.net/feedback/post/index.php");
+                    ContentValues authtokenvalues = new ContentValues();
+                    authtokenvalues.put("authtoken", authToken);
+                    result = postRequest(url_checkvalid, authtokenvalues);
 
                     Log.d("Jay", result);
 
                     if (result.equals("invalid_user")) { return "0"; }
 
                     if (result.equals("expired_token")) {
-                        //TODO Invalidate token
+                        Log.d("Jay", "Expired token");
+                        mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, authToken);
+                        return "1";
                     }
 
-                    if (result.equals("valid_user")) { return authToken; }
+                    if (result.equals("valid_user")) {
+                        SharedPreferences prefs = getApplication().getSharedPreferences(getString(R.string.time_since_renew), Context.MODE_PRIVATE);
+                        Date tokenRenewed = new Date(prefs.getLong("time", 0));
 
-                }
-                catch (MalformedURLException e) {
-                    e.printStackTrace();
-                    showMessage(e.getMessage());
+                        Log.d("Jay", tokenRenewed.toString());
+
+                        if (tokenRenewed.before(new Date(System.currentTimeMillis()))) {
+                            URL url_renew_token = new URL("http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token");
+                            result = postRequest(url_renew_token, authtokenvalues);
+
+                            mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, authToken);
+                            mAccountManager.setAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, result);
+                            authToken = result;
+
+                            Date newDate = new Date(System.currentTimeMillis() + (hours_between_renew_token * 3600 * 1000));
+                            Log.d("Jay", newDate.toString());
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putLong(getString(R.string.time_since_renew), newDate.getTime());
+                            editor.apply();
+                        }
+
+                        return authToken;
+                    }
+
                 }
                 catch (IOException e) {
                     e.printStackTrace();
@@ -255,6 +256,7 @@ public class SplashActivity extends Activity {
                 addNewAccount(AccountConstants.ACCOUNT_TYPE, AccountConstants.AUTH_TOKEN_TYPE);
                 return;
             }
+            Log.d("Jay", result);
         }
     }
 
@@ -273,6 +275,34 @@ public class SplashActivity extends Activity {
                 }
             }
         }, null);
+    }
+
+    private String postRequest(URL url, ContentValues values) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setReadTimeout(10000);
+        conn.setConnectTimeout(15000);
+        conn.setDoInput(true);
+        conn.setDoOutput(true);
+
+        String towrite = getQuery(values);
+        conn.setFixedLengthStreamingMode(towrite.length());
+
+        OutputStream os = conn.getOutputStream();
+
+        BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(os, "UTF-8"));
+        writer.write(towrite);
+        writer.flush();
+        writer.close();
+        os.close();
+
+        InputStream in = new BufferedInputStream(conn.getInputStream());
+        java.util.Scanner s = new java.util.Scanner(in).useDelimiter("\\A");
+        String result = s.hasNext() ? s.next() : "";
+
+        conn.disconnect();
+
+        return result;
     }
 
     private String getQuery(ContentValues vals) throws UnsupportedEncodingException

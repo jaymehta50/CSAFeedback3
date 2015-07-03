@@ -9,4 +9,7 @@
     <string name="action_settings">Settings</string>
 
     <string name="authenticator_label">Clinical School Apps</string>
+
+    <string name="time_since_renew">uk.co.jaymehta.csafeedback.TIME_LAST_RENEW_TOKEN</string>
+    <string name="title_activity_error">Error</string>
 </resources>
