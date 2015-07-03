@@ -1,12 +1,16 @@
 package uk.co.jaymehta.csafeedback;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 
-public class ErrorActivity extends ActionBarActivity {
+public class ErrorActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,5 +38,12 @@ public class ErrorActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void sendEmail(View v) {
+        Intent sendIntent = new Intent(Intent.ACTION_SENDTO);
+        Uri uri = Uri.parse("mailto:" + getString(R.string.admin_email));
+        sendIntent.setData(uri);
+        startActivity(Intent.createChooser(sendIntent, "Send email"));
     }
 }

@@ -12,4 +12,6 @@
 
     <string name="time_since_renew">uk.co.jaymehta.csafeedback.TIME_LAST_RENEW_TOKEN</string>
     <string name="title_activity_error">Error</string>
+
+    <string name="admin_email">jay@jaymehta.co.uk</string>
 </resources>
