@@ -28,6 +28,10 @@
             android:name=".AccountLoginAct"
             android:label="@string/title_activity_account_login" >
         </activity>
+        <activity
+            android:name=".ErrorActivity"
+            android:label="@string/title_activity_error" >
+        </activity>
 
         <service android:name=".CSAAuthenticatorService" >
             <intent-filter>
@@ -39,10 +43,11 @@
                 android:resource="@xml/authenticator" />
         </service>
 
-        <activity
-            android:name=".ErrorActivity"
-            android:label="@string/title_activity_error" >
-        </activity>
+        <provider
+            android:name=".DatabaseProvider"
+            android:authorities="uk.co.jaymehta.csafeedback.DatabaseProvider"
+            android:exported="false" >
+        </provider>
     </application>
 
 </manifest>
