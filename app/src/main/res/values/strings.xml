@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">CSA Feedback</string>
+
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">CSA\nFEEDBACK</string>
+    <string name="title_activity_account_login">AccountLoginAct</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="authenticator_label">Clinical School Apps</string>
+</resources>
