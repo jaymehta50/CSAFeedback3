@@ -15,6 +15,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -159,6 +160,7 @@ public class SplashActivity extends Activity {
 
         protected String doInBackground(Void... params) {
 
+            Looper.prepare();
             Account[] arrayAccounts;
             arrayAccounts = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
             if (arrayAccounts.length==0) {
@@ -219,6 +221,10 @@ public class SplashActivity extends Activity {
                     InputStream in = new BufferedInputStream(conn.getInputStream());
                     java.util.Scanner s = new java.util.Scanner(in).useDelimiter("\\A");
                     result = s.hasNext() ? s.next() : "";
+
+                    conn.disconnect();
+
+                    Log.d("Jay", result);
 
                     if (result.equals("invalid_user")) { return "0"; }
 
