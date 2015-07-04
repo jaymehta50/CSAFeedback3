@@ -1,5 +1,6 @@
 package uk.co.jaymehta.csafeedback;
 
+import android.net.Uri;
 import android.provider.BaseColumns;
 
 /**
@@ -9,6 +10,10 @@ public final class DatabaseConstants {
 
     public DatabaseConstants() {
     }
+
+    static final String PROVIDER_NAME = "uk.co.jaymehta.csafeedback.dbprovider";
+    static final String URL = "content://" + PROVIDER_NAME + "/";
+    static final Uri CONTENT_URI = Uri.parse(URL);
 
     private static final String TEXT_TYPE = " TEXT";
     private static final String INTEGER_TYPE = " INTEGER";

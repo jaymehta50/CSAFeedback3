@@ -20,16 +20,12 @@ public class DatabaseProvider extends ContentProvider {
 
     SQLiteDatabase db;
 
-    static final String PROVIDER_NAME = "uk.co.jaymehta.csafeedback.dbprovider";
-    static final String URL = "content://" + PROVIDER_NAME + "/";
-    static final Uri CONTENT_URI = Uri.parse(URL);
-
     static final UriMatcher sUriMatcher;
     static{
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        sUriMatcher.addURI(PROVIDER_NAME, "events", 1);
-        sUriMatcher.addURI(PROVIDER_NAME, "events/#", 2);
-        sUriMatcher.addURI(PROVIDER_NAME, "feedback", 3);
+        sUriMatcher.addURI(DatabaseConstants.PROVIDER_NAME, "events", 1);
+        sUriMatcher.addURI(DatabaseConstants.PROVIDER_NAME, "events/#", 2);
+        sUriMatcher.addURI(DatabaseConstants.PROVIDER_NAME, "feedback", 3);
     }
 
     public boolean onCreate() {
@@ -89,13 +85,13 @@ public class DatabaseProvider extends ContentProvider {
         switch (sUriMatcher.match(uri)) {
             // If the incoming URI was for all of problem_names
             case 1:
-                toreturn = "vnd.android.cursor.dir/vnd." + PROVIDER_NAME + "." + DatabaseConstants.fd_events.TABLE_NAME;
+                toreturn = "vnd.android.cursor.dir/vnd." + DatabaseConstants.PROVIDER_NAME + "." + DatabaseConstants.fd_events.TABLE_NAME;
                 break;
             case 2:
-                toreturn = "vnd.android.cursor.dir/vnd." + PROVIDER_NAME + "." + DatabaseConstants.fd_events.TABLE_NAME;
+                toreturn = "vnd.android.cursor.dir/vnd." + DatabaseConstants.PROVIDER_NAME + "." + DatabaseConstants.fd_events.TABLE_NAME;
                 break;
             case 3:
-                toreturn = "vnd.android.cursor.dir/vnd." + PROVIDER_NAME + "." + DatabaseConstants.fd_feedback.TABLE_NAME;
+                toreturn = "vnd.android.cursor.dir/vnd." + DatabaseConstants.PROVIDER_NAME + "." + DatabaseConstants.fd_feedback.TABLE_NAME;
                 break;
             default:
                 throw new IllegalArgumentException("Not a valid URI");
@@ -125,7 +121,7 @@ public class DatabaseProvider extends ContentProvider {
 
         if (rowID > 0)
         {
-            Uri _uri = ContentUris.withAppendedId(CONTENT_URI, rowID);
+            Uri _uri = ContentUris.withAppendedId(DatabaseConstants.CONTENT_URI, rowID);
             getContext().getContentResolver().notifyChange(_uri, null);
             return _uri;
         }

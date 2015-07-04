@@ -192,10 +192,10 @@ public class SplashActivity extends Activity {
                 String result;
 
                 try {
-                    URL url_checkvalid = new URL("http://jkm50.user.srcf.net/feedback/post/index.php");
+                    String url_checkvalid = "http://jkm50.user.srcf.net/feedback/post/index.php";
                     ContentValues authtokenvalues = new ContentValues();
                     authtokenvalues.put("authtoken", authToken);
-                    result = postRequest(url_checkvalid, authtokenvalues);
+                    result = PostHelper.postRequest(url_checkvalid, authtokenvalues);
 
                     Log.d("Jay", result);
 
@@ -214,8 +214,8 @@ public class SplashActivity extends Activity {
                         Log.d("Jay", tokenRenewed.toString());
 
                         if (tokenRenewed.before(new Date(System.currentTimeMillis()))) {
-                            URL url_renew_token = new URL("http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token");
-                            result = postRequest(url_renew_token, authtokenvalues);
+                            String url_renew_token = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token";
+                            result = PostHelper.postRequest(url_renew_token, authtokenvalues);
 
                             mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, authToken);
                             mAccountManager.setAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, result);
@@ -271,58 +271,6 @@ public class SplashActivity extends Activity {
                 }
             }
         }, null);
-    }
-
-    private String postRequest(URL url, ContentValues values) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setReadTimeout(10000);
-        conn.setConnectTimeout(15000);
-        conn.setDoInput(true);
-        conn.setDoOutput(true);
-
-        String towrite = getQuery(values);
-        conn.setFixedLengthStreamingMode(towrite.length());
-
-        OutputStream os = conn.getOutputStream();
-
-        BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(os, "UTF-8"));
-        writer.write(towrite);
-        writer.flush();
-        writer.close();
-        os.close();
-
-        InputStream in = new BufferedInputStream(conn.getInputStream());
-        java.util.Scanner s = new java.util.Scanner(in).useDelimiter("\\A");
-        String result = s.hasNext() ? s.next() : "";
-
-        conn.disconnect();
-
-        return result;
-    }
-
-    private String getQuery(ContentValues vals) throws UnsupportedEncodingException
-    {
-        StringBuilder result = new StringBuilder();
-        boolean first = true;
-
-        Set<Map.Entry<String, Object>> s=vals.valueSet();
-        Iterator itr = s.iterator();
-
-        while(itr.hasNext())
-        {
-            if (first)
-                first = false;
-            else
-                result.append("&");
-
-            Map.Entry me = (Map.Entry)itr.next();
-            result.append(URLEncoder.encode(me.getKey().toString(), "UTF-8"));
-            result.append("=");
-            result.append(URLEncoder.encode(me.getValue().toString(), "UTF-8"));
-        }
-
-        return result.toString();
     }
 
     private void showMessage(final String msg) {
