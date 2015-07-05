@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<sync-adapter
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:contentAuthority="uk.co.jaymehta.csafeedback.DatabaseProvider"
+    android:accountType="uk.co.jaymehta.CSA_ACCOUNT"
+    android:userVisible="true"
+    android:supportsUploading="true"
+    android:isAlwaysSyncable="true"
+    />
