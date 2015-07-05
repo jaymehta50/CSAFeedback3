@@ -11,7 +11,7 @@ public final class DatabaseConstants {
     public DatabaseConstants() {
     }
 
-    static final String PROVIDER_NAME = "uk.co.jaymehta.csafeedback.dbprovider";
+    static final String PROVIDER_NAME = "uk.co.jaymehta.csafeedback.DatabaseProvider";
     static final String URL = "content://" + PROVIDER_NAME + "/";
     static final Uri CONTENT_URI = Uri.parse(URL);
 

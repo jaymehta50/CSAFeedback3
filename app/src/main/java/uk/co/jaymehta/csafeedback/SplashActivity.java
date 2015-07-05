@@ -10,6 +10,7 @@ import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -80,6 +81,8 @@ public class SplashActivity extends Activity {
 
     private Integer hours_between_renew_token = 3;
 
+    ContentResolver mResolver;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,6 +152,7 @@ public class SplashActivity extends Activity {
         // while interacting with the UI.
 //        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
 
+        mResolver = getContentResolver();
         mAccountManager = AccountManager.get(this);
         new checkLoginStatus().execute();
     }
@@ -167,6 +171,7 @@ public class SplashActivity extends Activity {
                 Account mAccount = arrayAccounts[0];
                 AccountManagerFuture<Bundle> amf = mAccountManager.getAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, null, new AccountLoginAct(), null, null);
 
+                mResolver.setSyncAutomatically(mAccount, DatabaseConstants.PROVIDER_NAME, true);
                 String authToken;
 
                 try {

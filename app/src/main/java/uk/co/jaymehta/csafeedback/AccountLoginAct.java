@@ -3,6 +3,7 @@ package uk.co.jaymehta.csafeedback;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -158,6 +159,18 @@ public class AccountLoginAct extends AccountAuthenticatorActivity {
         Log.d("Jay", accountName);
         Log.d("Jay", mAccountType);
         final Account account = new Account(accountName, mAccountType);
+
+        // Pass the settings flags by inserting them in a bundle
+        Bundle settingsBundle = new Bundle();
+        settingsBundle.putBoolean(
+                ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        settingsBundle.putBoolean(
+                ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+        /*
+         * Request the sync for the default account, authority, and
+         * manual sync settings
+         */
+        ContentResolver.requestSync(account, DatabaseConstants.PROVIDER_NAME, settingsBundle);
 
         Log.d("Jay", TAG + "> finishLogin > addAccountExplicitly");
         String authtoken = intent.getStringExtra(AccountManager.KEY_AUTHTOKEN);
