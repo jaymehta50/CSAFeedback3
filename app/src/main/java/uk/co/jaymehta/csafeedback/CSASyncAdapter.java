@@ -20,7 +20,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Handle the transfer of data between a server and an
@@ -77,20 +76,25 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         try {
             mAuthToken = mAccountManager.blockingGetAuthToken(account, AccountConstants.AUTH_TOKEN_TYPE, true);
         }
-        catch (AuthenticatorException e) {
+        catch (OperationCanceledException e) {
             e.printStackTrace();
+            Log.d("Jay", e.getMessage());
             return;
         }
         catch (IOException e) {
             e.printStackTrace();
+            Log.d("Jay", e.getMessage());
             return;
         }
-        catch (OperationCanceledException e) {
+        catch (AuthenticatorException e) {
             e.printStackTrace();
+            Log.d("Jay", e.getMessage());
             return;
         }
 
+
         //Get any unsynced items ready to sync up to server
+        Log.d("Jay", "Get any unsynced items ready to sync up to server");
         Cursor c = mContentResolver.query(
                 Uri.parse(DatabaseConstants.URL + "feedback"),
                 new String[] {
@@ -106,8 +110,11 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         );
 
         //If there are any un-synced items, sync them up to server now
+        Log.d("Jay", "If there are any un-synced items, sync them up to server now");
         if (c.getCount() > 1) {
+            Log.d("Jay", "Syncing items up");
             JSONArray data = cur2Json(c);
+            Log.d("Jay", data.toString());
 
             String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_up";
             ContentValues authtokenvalues = new ContentValues();
@@ -124,6 +131,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
         //Sync down
         //Get data to store on device
+        Log.d("Jay", "Sync down");
         String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_down";
         ContentValues authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
@@ -141,10 +149,10 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         JSONArray obj;
         try {
             obj = new JSONArray(result);
-            Log.d("Jay", obj.toString());
+            Log.d("Jay", obj.toString(1));
         } catch (Throwable t) {
             t.printStackTrace();
-            Log.e("Jay", "Could not parse malformed JSON: \"" + result + "\"");
+            Log.d("Jay", "Could not parse malformed JSON: \"" + result + "\"");
             return;
         }
 
@@ -163,7 +171,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             }
 
             JSONArray elementNames = objectInArray.names();
-            for (int j = 0, size2 = elementNames.length(); j < size; j++)
+            for (int j = 0, size2 = elementNames.length(); j < size2; j++)
             {
                 try {
                     //Convert JSONArray to ContentValues
@@ -171,12 +179,14 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                 }
                 catch (JSONException e) {
                     e.printStackTrace();
+                    Log.d("Jay", e.getMessage());
                     return;
                 }
             }
 
             //If first time this has run, delete existing entries
             if (first) {
+                Log.d("Jay", "Delete existing entries");
                 mContentResolver.delete(
                         Uri.parse(DatabaseConstants.URL + "events"),
                         null,
@@ -186,6 +196,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             first = false;
 
             //Insert current row
+            Log.d("Jay", "Insert current row");
             mContentResolver.insert(
                     Uri.parse(DatabaseConstants.URL + "events"),
                     toinsert
@@ -219,25 +230,5 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         cursor.close();
         return resultSet;
 
-    }
-
-    public class Container {
-        private List<Node> nodes;
-
-        public Container() {}
-    }
-
-    public class Node {
-        private String name;
-        private String desc;
-        private Integer starttime;
-        private Integer endtime;
-        private String responsible_person;
-        private String response_user;
-        private String response_name;
-        private String response_text;
-        private Integer response_time;
-
-        public Node() {}
     }
 }

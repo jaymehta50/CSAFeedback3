@@ -81,7 +81,7 @@ public class SplashActivity extends Activity {
 
     private Integer hours_between_renew_token = 3;
 
-    ContentResolver mResolver;
+    private ContentResolver mResolver;
 
 
     @Override
@@ -162,8 +162,7 @@ public class SplashActivity extends Activity {
         protected String doInBackground(Void... params) {
 
             Looper.prepare();
-            Account[] arrayAccounts;
-            arrayAccounts = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
+            Account[] arrayAccounts = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
             if (arrayAccounts.length==0) {
                 return "1";
             }
@@ -235,7 +234,6 @@ public class SplashActivity extends Activity {
 
                         return authToken;
                     }
-
                 }
                 catch (IOException e) {
                     e.printStackTrace();
@@ -269,6 +267,22 @@ public class SplashActivity extends Activity {
                     Bundle bnd = future.getResult();
                     showMessage("Account was created");
                     Log.d("Jay", "AddNewAccount Bundle is " + bnd);
+
+                    Account[] arrayAccounts2 = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
+
+                    if (arrayAccounts2.length==1) {
+                        // Pass the settings flags by inserting them in a bundle
+                        Bundle settingsBundle = new Bundle();
+                        settingsBundle.putBoolean(
+                                ContentResolver.SYNC_EXTRAS_MANUAL, true);
+                        settingsBundle.putBoolean(
+                                ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+                        /*
+                         * Request the sync for the default account, authority, and
+                         * manual sync settings
+                         */
+                        mResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
+                    }
 
                 } catch (Exception e) {
                     e.printStackTrace();
