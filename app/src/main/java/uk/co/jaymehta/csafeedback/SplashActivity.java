@@ -256,6 +256,8 @@ public class SplashActivity extends Activity {
                 addNewAccount(AccountConstants.ACCOUNT_TYPE, AccountConstants.AUTH_TOKEN_TYPE);
                 return;
             }
+            Intent intent = new Intent(getApplicationContext(), FeedbackActivity.class);
+            startActivity(intent);
         }
     }
 
@@ -282,6 +284,9 @@ public class SplashActivity extends Activity {
                          * manual sync settings
                          */
                         mResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
+
+                        Intent intent = new Intent(getApplicationContext(), FeedbackActivity.class);
+                        startActivity(intent);
                     }
 
                 } catch (Exception e) {

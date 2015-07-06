@@ -14,4 +14,7 @@
     <string name="title_activity_error">Error</string>
 
     <string name="admin_email">jay@jaymehta.co.uk</string>
+    <string name="title_activity_feedback">Leave Feedback</string>
+
+    <string name="empty_list">You have nothing to leave feedback for!</string>
 </resources>
