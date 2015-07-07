@@ -3,18 +3,26 @@ package uk.co.jaymehta.csafeedback;
 import android.app.Activity;
 import android.app.ListFragment;
 import android.app.LoaderManager;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
+import android.media.Image;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
+
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 
 /**
@@ -30,9 +38,9 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
         public void onEventSelected(long position);
     }
 
+    //Get and return a new instance of this fragment
     public static FeedbackActivityFragment newInstance() {
-        FeedbackActivityFragment fragment = new FeedbackActivityFragment();
-        return fragment;
+        return new FeedbackActivityFragment();
     }
 
     public FeedbackActivityFragment() {
@@ -57,11 +65,11 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
                              Bundle savedInstanceState) {
         // For the cursor adapter, specify which columns go into which views
         String[] fromColumns = {DatabaseConstants.fd_events.COLUMN_NAME_NAME, DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME};
-        int[] toViews = {android.R.id.text1, android.R.id.text2}; // The TextView in simple_list_item_1
+        int[] toViews = {R.id.list_name, R.id.list_datetime}; // The TextView in simple_list_item_2
 
         // Create an empty adapter we will use to display the loaded data.
         // We pass null for the cursor, then update it in onLoadFinished()
-        mAdapter = new SimpleCursorAdapter(getActivity(), android.R.layout.simple_list_item_2, null, fromColumns, toViews, 0);
+        mAdapter = new CustomCursorAdapter(getActivity(), R.layout.list_item_feedback, null, fromColumns, toViews, 0);
         setListAdapter(mAdapter);
 
         // Prepare the loader.  Either re-connect with an existing one,
@@ -78,7 +86,9 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
         final String[] PROJECTION = new String[] {
                 BaseColumns._ID,
                 DatabaseConstants.fd_events.COLUMN_NAME_NAME,
-                DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME
+                DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME,
+                DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER,
+                DatabaseConstants.fd_events.COLUMN_NAME_FEEDBACK_ID
         };
         // This is the select criteria
         final Uri sUri = Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "events");
@@ -107,5 +117,50 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
 
     public void onListItemClick(ListView l, View v, int position, long id) {
         mCallback.onEventSelected(id);
+    }
+
+    private class CustomCursorAdapter extends SimpleCursorAdapter {
+
+        private Context mContext;
+        private Context appContext;
+        private Integer layout;
+        private Cursor cr;
+        private final LayoutInflater inflater;
+
+        public CustomCursorAdapter(Context context, Integer l, Cursor c, String[] from, int[] to, int flags) {
+            super(context, l, c, from, to, flags);
+            layout=l;
+            mContext = context;
+            inflater=LayoutInflater.from(context);
+            cr=c;
+        }
+
+        @Override
+        public void bindView(View view, Context context, Cursor cursor) {
+            super.bindView(view, context, cursor);
+            TextView listName=(TextView) view.findViewById(R.id.list_name);
+            TextView listDateTime=(TextView) view.findViewById(R.id.list_datetime);
+            ImageView ic_done = (ImageView) view.findViewById(R.id.done_image);
+            ImageView ic_comment = (ImageView) view.findViewById(R.id.comment_image);
+
+            Integer name_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_NAME);
+            Integer datetime_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME);
+            Integer feedback_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_FEEDBACK_ID);
+            Integer response_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("h:mma EEE d MMM yy", Locale.UK);
+
+            listName.setText(cursor.getString(name_index));
+            listDateTime.setText(sdf.format(cursor.getLong(datetime_index) * 1000));
+
+            if (!TextUtils.isEmpty(cursor.getString(feedback_index))) {
+                ic_done.setVisibility(View.VISIBLE);
+            }
+
+            if (!TextUtils.isEmpty(cursor.getString(response_index))) {
+                ic_comment.setVisibility(View.VISIBLE);
+            }
+        }
+
     }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <account-authenticator xmlns:android="http://schemas.android.com/apk/res/android"
     android:accountType="uk.co.jaymehta.CSA_ACCOUNT"
-    android:icon="@drawable/ravenlogowhite"
-    android:smallIcon="@drawable/ravenlogowhite"
+    android:icon="@mipmap/ic_csafeedback"
+    android:smallIcon="@mipmap/ic_csafeedback"
     android:label="@string/authenticator_label"
     android:accountPreferences="@xml/prefs"/>

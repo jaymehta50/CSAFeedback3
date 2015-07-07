@@ -10,7 +10,9 @@
 
     <string name="authenticator_label">Clinical School Apps</string>
 
+    <string name="prefs_name">uk.co.jaymehta.csafeedback.SHAREDPREFS</string>
     <string name="time_since_renew">uk.co.jaymehta.csafeedback.TIME_LAST_RENEW_TOKEN</string>
+    <string name="run_renewal_bool">uk.co.jaymehta.csafeedback.RUN_RENEWAL</string>
     <string name="title_activity_error">Error</string>
 
     <string name="admin_email">jay@jaymehta.co.uk</string>

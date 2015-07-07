@@ -79,8 +79,6 @@ public class SplashActivity extends Activity {
     
     private AccountManager mAccountManager;
 
-    private Integer hours_between_renew_token = 3;
-
     private ContentResolver mResolver;
 
 
@@ -147,122 +145,97 @@ public class SplashActivity extends Activity {
             }
         });
 
+        //NO UI ELEMENTS TO INTERACT WITH
         // Upon interacting with UI controls, delay any scheduled hide()
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
 //        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
 
+        //Prep account and resolver variables
         mResolver = getContentResolver();
         mAccountManager = AccountManager.get(this);
+
+        //Check for a valid account in an asynctask
         new checkLoginStatus().execute();
     }
 
-    private class checkLoginStatus extends AsyncTask<Void, Void, String> {
+    private class checkLoginStatus extends AsyncTask<Void, Void, Integer> {
 
-        protected String doInBackground(Void... params) {
+        protected Integer doInBackground(Void... params) {
 
             Looper.prepare();
+            //Search for CSA Accounts
             Account[] arrayAccounts = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
+
             if (arrayAccounts.length==0) {
-                return "1";
+                //No CSA account found - send the user to create an account
+                return 1;
             }
             else if (arrayAccounts.length==1) {
+                //One CSA account found - get its auth token
                 Account mAccount = arrayAccounts[0];
                 AccountManagerFuture<Bundle> amf = mAccountManager.getAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, null, new AccountLoginAct(), null, null);
 
+                //Set the sync adapter to run automatically
                 mResolver.setSyncAutomatically(mAccount, DatabaseConstants.PROVIDER_NAME, true);
-                String authToken;
 
                 try {
                     Bundle authTokenBundle = amf.getResult();
-                    authToken = authTokenBundle.get(AccountManager.KEY_AUTHTOKEN).toString();
+                    //If authtoken has expired, prompt user to re-login (we don't store users' password so can't do this ourselves)
+                    if (authTokenBundle.containsKey(AccountManager.KEY_INTENT)) {
+                        return 1;
+                    }
                 }
                 catch (OperationCanceledException e) {
                     e.printStackTrace();
                     showMessage(e.getMessage());
-                    return "0";
+                    return 0;
                 }
                 catch (IOException e) {
                     e.printStackTrace();
                     showMessage(e.getMessage());
-                    return "0";
+                    return 0;
                 }
                 catch (AuthenticatorException e) {
                     e.printStackTrace();
                     showMessage(e.getMessage());
-                    return "0";
+                    return 0;
                 }
 
-                String result;
+                //Store a value that tells the syncadapter to renew this users authtoken the next time it runs
+                SharedPreferences prefs = getSharedPreferences(getString(R.string.prefs_name), Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(getString(R.string.run_renewal_bool), true);
+                editor.apply();
 
-                try {
-                    String url_checkvalid = "http://jkm50.user.srcf.net/feedback/post/index.php";
-                    ContentValues authtokenvalues = new ContentValues();
-                    authtokenvalues.put("authtoken", authToken);
-                    result = PostHelper.postRequest(url_checkvalid, authtokenvalues);
-
-                    Log.d("Jay", result);
-
-                    if (result.equals("invalid_user")) { return "0"; }
-
-                    if (result.equals("expired_token")) {
-                        Log.d("Jay", "Expired token");
-                        mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, authToken);
-                        return "1";
-                    }
-
-                    if (result.equals("valid_user")) {
-                        SharedPreferences prefs = getApplication().getSharedPreferences(getString(R.string.time_since_renew), Context.MODE_PRIVATE);
-                        Date tokenRenewed = new Date(prefs.getLong("time", 0));
-
-                        Log.d("Jay", tokenRenewed.toString());
-
-                        if (tokenRenewed.before(new Date(System.currentTimeMillis()))) {
-                            String url_renew_token = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token";
-                            result = PostHelper.postRequest(url_renew_token, authtokenvalues);
-
-                            mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, authToken);
-                            mAccountManager.setAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, result);
-                            authToken = result;
-
-                            Date newDate = new Date(System.currentTimeMillis() + (hours_between_renew_token * 3600 * 1000));
-                            Log.d("Jay", newDate.toString());
-                            SharedPreferences.Editor editor = prefs.edit();
-                            editor.putLong(getString(R.string.time_since_renew), newDate.getTime());
-                            editor.apply();
-                        }
-
-                        return authToken;
-                    }
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                    showMessage(e.getMessage());
-                }
-
-                return authToken;
+                return 2;
             }
-            else return "0";
+            else return 0;
 
         }
 
-        protected void onPostExecute(String result) {
-            if (result.equals("0")) {
-                Intent intent = new Intent(getApplicationContext(), ErrorActivity.class);
-                startActivity(intent);
-                return;
-            }
-            if (result.equals("1")) {
+        protected void onPostExecute(Integer result) {
+            if (result==1) {
+                //Prompt from above that we need to add a new account or user's authtoken is invalid
                 addNewAccount(AccountConstants.ACCOUNT_TYPE, AccountConstants.AUTH_TOKEN_TYPE);
                 return;
             }
-            Intent intent = new Intent(getApplicationContext(), FeedbackActivity.class);
+            if (result==2) {
+                //Everything was fine, start app
+                Intent intent = new Intent(getApplicationContext(), FeedbackActivity.class);
+                startActivity(intent);
+                return;
+            }
+            //Anything else - error page
+            Intent intent = new Intent(getApplicationContext(), ErrorActivity.class);
             startActivity(intent);
         }
     }
 
     private void addNewAccount(String accountType, String authTokenType) {
+        //Add new account
         final AccountManagerFuture<Bundle> future = mAccountManager.addAccount(accountType, authTokenType, null, null, this, new AccountManagerCallback<Bundle>() {
+            //Function to run afterwards
             @Override
             public void run(AccountManagerFuture<Bundle> future) {
                 try {
@@ -270,22 +243,28 @@ public class SplashActivity extends Activity {
                     showMessage("Account was created");
                     Log.d("Jay", "AddNewAccount Bundle is " + bnd);
 
+                    //Get an updated list of accounts, which should include the recently created one
                     Account[] arrayAccounts2 = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
 
+                    //Double check - there should still only be one CSA account
                     if (arrayAccounts2.length==1) {
-                        // Pass the settings flags by inserting them in a bundle
+
+                        // Force syncadapter to run now so that user has all the information downloaded for first use
                         Bundle settingsBundle = new Bundle();
                         settingsBundle.putBoolean(
                                 ContentResolver.SYNC_EXTRAS_MANUAL, true);
                         settingsBundle.putBoolean(
                                 ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-                        /*
-                         * Request the sync for the default account, authority, and
-                         * manual sync settings
-                         */
+
                         mResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
 
+                        //Switch to the main app page
                         Intent intent = new Intent(getApplicationContext(), FeedbackActivity.class);
+                        startActivity(intent);
+                    }
+                    else {
+                        //Must have been an error (more/less than one CSA account) so show error page
+                        Intent intent = new Intent(getApplicationContext(), ErrorActivity.class);
                         startActivity(intent);
                     }
 
@@ -297,6 +276,7 @@ public class SplashActivity extends Activity {
         }, null);
     }
 
+    //Quick function to simplify android toasts
     private void showMessage(final String msg) {
         if (TextUtils.isEmpty(msg))
             return;

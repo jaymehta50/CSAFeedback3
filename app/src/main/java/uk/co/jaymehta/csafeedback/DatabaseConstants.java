@@ -32,6 +32,7 @@ public final class DatabaseConstants {
         public static final String COLUMN_NAME_RESPONSE_NAME = "response_name";
         public static final String COLUMN_NAME_RESPONSE_TEXT = "response_text";
         public static final String COLUMN_NAME_RESPONSE_TIME = "response_time";
+        public static final String COLUMN_NAME_FEEDBACK_ID = "feedback_id";
 
         public static final String SQL_CREATE_ENTRIES =
                 "CREATE TABLE " + TABLE_NAME + " (" +
@@ -44,7 +45,8 @@ public final class DatabaseConstants {
                         COLUMN_NAME_RESPONSE_USER + TEXT_TYPE + NOT_NULL + COMMA_SEP +
                         COLUMN_NAME_RESPONSE_NAME + TEXT_TYPE + NOT_NULL + COMMA_SEP +
                         COLUMN_NAME_RESPONSE_TEXT + TEXT_TYPE + NOT_NULL + COMMA_SEP +
-                        COLUMN_NAME_RESPONSE_TIME + TEXT_TYPE + NOT_NULL +
+                        COLUMN_NAME_RESPONSE_TIME + TEXT_TYPE + NOT_NULL + COMMA_SEP +
+                        COLUMN_NAME_FEEDBACK_ID + INTEGER_TYPE + NULL +
                 ")";
 
         public static final String SQL_DELETE_ENTRIES =

@@ -9,10 +9,12 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -20,17 +22,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.Date;
 
 /**
  * Handle the transfer of data between a server and an
  * app, using the Android sync adapter framework.
  */
 public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
-    // Global variables
-    // Define a variable to contain a content resolver instance
-    ContentResolver mContentResolver;
-
-    AccountManager mAccountManager;
+    // Class variables
+    private ContentResolver mContentResolver;
+    private Context mContext;
+    private AccountManager mAccountManager;
 
     /**
      * Set up the sync adapter
@@ -41,8 +43,9 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
          * If your app uses a content resolver, get an instance of it
          * from the incoming Context
          */
-        mContentResolver = context.getContentResolver();
-        mAccountManager = AccountManager.get(context);
+        mContext = context;
+        mContentResolver = mContext.getContentResolver();
+        mAccountManager = AccountManager.get(mContext);
     }
 
     /**
@@ -59,8 +62,9 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
          * If your app uses a content resolver, get an instance of it
          * from the incoming Context
          */
-        mContentResolver = context.getContentResolver();
-        mAccountManager = AccountManager.get(context);
+        mContext = context;
+        mContentResolver = mContext.getContentResolver();
+        mAccountManager = AccountManager.get(mContext);
     }
 
     @Override
@@ -75,6 +79,9 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         String mAuthToken;
         try {
             mAuthToken = mAccountManager.blockingGetAuthToken(account, AccountConstants.AUTH_TOKEN_TYPE, true);
+
+            //Check that authtoken has not already been invalidated e.g. by a previous run of this adapter, if yes then quit
+            if(TextUtils.isEmpty(mAuthToken)) { return; }
         }
         catch (OperationCanceledException e) {
             e.printStackTrace();
@@ -90,6 +97,76 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             e.printStackTrace();
             Log.d("Jay", e.getMessage());
             return;
+        }
+
+        //Is this authtoken for a valid user?
+        String url_checkvalid = "http://jkm50.user.srcf.net/feedback/post/index.php";
+        ContentValues authtokenvalues = new ContentValues();
+        authtokenvalues.put("authtoken", mAuthToken);
+        String result;
+        try {
+            result = PostHelper.postRequest(url_checkvalid, authtokenvalues);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            Log.d("Jay", e.getMessage());
+            return;
+        }
+        Log.d("Jay", result);
+
+        //Result shows that this user should not have access to this system... How odd... Remove their account, maybe a fresh login will help
+        if (result.equals("invalid_user")) {
+            Log.d("Jay", "Invalid user");
+            mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
+            mAccountManager.removeAccountExplicitly(account);
+            return;
+        }
+
+        //Result shows that user's token has expired (probably hasn't logged in for 3 months), invalidate token and user can re-logon on next app usage
+        if (result.equals("expired_token")) {
+            Log.d("Jay", "Expired token");
+            mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
+            return;
+        }
+
+        //Server gives any other response than this is a valid user - quit
+        if (!result.equals("valid_user")) {
+            return;
+        }
+
+
+        //Anything after this line - we assume we have received a valid user response from server
+
+        //Has the syncadapter been told to renew the auth token?
+        SharedPreferences prefs = mContext.getSharedPreferences(mContext.getString(R.string.prefs_name), Context.MODE_PRIVATE);
+        if(prefs.getBoolean(mContext.getString(R.string.run_renewal_bool), false)) {
+            //If yes - renew auth token
+            Long tokenRenewed = prefs.getLong(mContext.getString(R.string.time_since_renew), 0);
+            Log.d("Jay", tokenRenewed.toString());
+
+            //Has it been more than the number of hours specified in AccountConstants since the last authtoken renewal?
+            if (tokenRenewed <= System.currentTimeMillis()) {
+                //Yes - get and store new authtoken and invalidate prior one
+                String url_renew_token = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token";
+                try {
+                    result = PostHelper.postRequest(url_renew_token, authtokenvalues);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.d("Jay", e.getMessage());
+                    return;
+                }
+
+                mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
+                mAccountManager.setAuthToken(account, AccountConstants.AUTH_TOKEN_TYPE, result);
+                mAuthToken = result;
+
+                //Update datetime after which next renewal can take place
+                Long newDate = System.currentTimeMillis() + (AccountConstants.HOURS_BETWEEN_RENEW_TOKEN * 3600 * 1000);
+                Log.d("Jay", newDate.toString());
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putLong(mContext.getString(R.string.time_since_renew), newDate);
+                editor.apply();
+            }
         }
 
 
@@ -117,7 +194,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("Jay", data.toString());
 
             String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_up";
-            ContentValues authtokenvalues = new ContentValues();
+            authtokenvalues = new ContentValues();
             authtokenvalues.put("authtoken", mAuthToken);
             authtokenvalues.put("fd_data", data.toString());
             try {
@@ -125,6 +202,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             }
             catch (IOException e) {
                 e.printStackTrace();
+                Log.d("Jay", e.getMessage());
             }
         }
 
@@ -133,9 +211,8 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         //Get data to store on device
         Log.d("Jay", "Sync down");
         String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_down";
-        ContentValues authtokenvalues = new ContentValues();
+        authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
-        String result;
         try {
             result = PostHelper.postRequest(url_sync_up, authtokenvalues);
             Log.d("Jay", result);
