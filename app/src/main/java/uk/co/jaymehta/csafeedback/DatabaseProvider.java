@@ -26,6 +26,7 @@ public class DatabaseProvider extends ContentProvider {
         sUriMatcher.addURI(DatabaseConstants.PROVIDER_NAME, "events", 1);
         sUriMatcher.addURI(DatabaseConstants.PROVIDER_NAME, "events/#", 2);
         sUriMatcher.addURI(DatabaseConstants.PROVIDER_NAME, "feedback", 3);
+        sUriMatcher.addURI(DatabaseConstants.PROVIDER_NAME, "feedback/#", 4);
     }
 
     public boolean onCreate() {
@@ -62,6 +63,12 @@ public class DatabaseProvider extends ContentProvider {
                 if (TextUtils.isEmpty(sortOrder)) sortOrder = BaseColumns._ID + " ASC";
                 break;
 
+            case 4:
+                tablename = DatabaseConstants.fd_feedback.TABLE_NAME;
+                selection = BaseColumns._ID + " = ?";
+                selectionArgs = new String[] {uri.getLastPathSegment()};
+                break;
+
             default:
                 throw new IllegalArgumentException("Not a valid URI");
         }
@@ -93,6 +100,9 @@ public class DatabaseProvider extends ContentProvider {
             case 3:
                 toreturn = "vnd.android.cursor.dir/vnd." + DatabaseConstants.PROVIDER_NAME + "." + DatabaseConstants.fd_feedback.TABLE_NAME;
                 break;
+            case 4:
+                toreturn = "vnd.android.cursor.dir/vnd." + DatabaseConstants.PROVIDER_NAME + "." + DatabaseConstants.fd_feedback.TABLE_NAME;
+                break;
             default:
                 throw new IllegalArgumentException("Not a valid URI");
         }
@@ -111,6 +121,9 @@ public class DatabaseProvider extends ContentProvider {
                 table = DatabaseConstants.fd_events.TABLE_NAME;
                 break;
             case 3:
+                table = DatabaseConstants.fd_feedback.TABLE_NAME;
+                break;
+            case 4:
                 table = DatabaseConstants.fd_feedback.TABLE_NAME;
                 break;
             default:
@@ -142,6 +155,11 @@ public class DatabaseProvider extends ContentProvider {
                 break;
             case 3:
                 table = DatabaseConstants.fd_feedback.TABLE_NAME;
+                break;
+            case 4:
+                table = DatabaseConstants.fd_feedback.TABLE_NAME;
+                selection = BaseColumns._ID + " = ?";
+                selectionArgs = new String[] {uri.getLastPathSegment()};
                 break;
             default:
                 throw new IllegalArgumentException("Not a valid URI");
@@ -179,6 +197,11 @@ public class DatabaseProvider extends ContentProvider {
                 break;
             case 3:
                 table = DatabaseConstants.fd_feedback.TABLE_NAME;
+                break;
+            case 4:
+                table = DatabaseConstants.fd_feedback.TABLE_NAME;
+                selection = BaseColumns._ID + " = ?";
+                selectionArgs = new String[] {uri.getLastPathSegment()};
                 break;
             default:
                 throw new IllegalArgumentException("Not a valid URI");

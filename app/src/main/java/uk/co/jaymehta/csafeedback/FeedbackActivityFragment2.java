@@ -2,6 +2,9 @@ package uk.co.jaymehta.csafeedback;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.ContentValues;
+import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -16,12 +19,19 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 
 /**
@@ -30,9 +40,12 @@ import java.util.Date;
 public class FeedbackActivityFragment2 extends Fragment {
 
     private static final String ARG_PARAM1 = "arg1";
+    public static Long selection;
+    public static Integer score;
+    public static Integer cbresp = 1;
     private SeekBar seekBarScore;
     private TextView textScore;
-    private Long selection;
+    private CheckBox checkBoxResponse;
 
     public FeedbackActivityFragment2() {
     }
@@ -59,11 +72,26 @@ public class FeedbackActivityFragment2 extends Fragment {
         View v = inflater.inflate(R.layout.fragment_feedback_2, container, false);
         textScore = (TextView) v.findViewById(R.id.textScore);
         seekBarScore = (SeekBar) v.findViewById(R.id.seekBarScore);
+        checkBoxResponse = (CheckBox) v.findViewById(R.id.checkBoxRespond);
+        checkBoxResponse.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if(b) {
+                    Log.d("Jay", "cbresp to 1");
+                    cbresp = 1;
+                }
+                else {
+                    Log.d("Jay", "cbresp to 0");
+                    cbresp = 0;
+                }
+            }
+        });
 
         seekBarScore.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progressValue, boolean fromUser) {
+                score = progressValue;
                 textScore.setText(String.valueOf(progressValue));
             }
 
@@ -85,7 +113,12 @@ public class FeedbackActivityFragment2 extends Fragment {
             Cursor[] output;
             Cursor c = getActivity().getContentResolver().query(
                     Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),   // The content URI of the words table
-                    new String[] { BaseColumns._ID },                        // The columns to return for each row
+                    new String[] {
+                            BaseColumns._ID,
+                            DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE,
+                            DatabaseConstants.fd_feedback.COLUMN_NAME_NOTIFY_RESP,
+                            DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT
+                    },                        // The columns to return for each row
                     DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",                    // Selection criteria
                     new String[] { String.valueOf(ids[0]) },                     // Selection criteria
                     null);
@@ -115,20 +148,40 @@ public class FeedbackActivityFragment2 extends Fragment {
 
         protected void onPostExecute(Cursor... result) {
             if (result.length == 2) {
-                //TODO Code to handle user has already left feedback
+                Cursor sCursor = result[1];
+                sCursor.moveToFirst();
+
+                TextView textScore = (TextView) getActivity().findViewById(R.id.textScore);
+                textScore.setText(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE)));
+
+                LinearLayout l = (LinearLayout) getActivity().findViewById(R.id.circle_layout);
+                l.setBackgroundResource(R.drawable.score_circle_green);
+
+                SeekBar seekBarScore = (SeekBar) getActivity().findViewById(R.id.seekBarScore);
+                seekBarScore.setVisibility(View.GONE);
+
+                checkBoxResponse.setVisibility(View.GONE);
+
+                EditText editTextComment = (EditText) getActivity().findViewById(R.id.textComment);
+                editTextComment.setVisibility(View.VISIBLE);
+
+                sCursor.close();
             }
 
             Cursor mCursor = result[0];
             mCursor.moveToFirst();
 
             TextView textTitle = (TextView) getActivity().findViewById(R.id.textTitle);
-            textTitle.setText(mCursor.getString(1));
+            textTitle.setText(mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_NAME)));
 
             TextView textDesc = (TextView) getActivity().findViewById(R.id.textDesc);
-            textDesc.setText(mCursor.getString(2));
+            textDesc.setText(mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_DESC)));
 
+            SimpleDateFormat sdf = new SimpleDateFormat("h:mma EEE d MMM yy", Locale.UK);
             TextView textDateTime = (TextView) getActivity().findViewById(R.id.textDateTime);
-            textDateTime.setText(new Date(Long.valueOf(mCursor.getString(3)) * 1000).toString());
+            textDateTime.setText(sdf.format(mCursor.getLong(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME)) * 1000));
+
+            mCursor.close();
         }
     }
 

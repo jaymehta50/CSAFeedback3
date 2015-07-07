@@ -121,18 +121,8 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
 
     private class CustomCursorAdapter extends SimpleCursorAdapter {
 
-        private Context mContext;
-        private Context appContext;
-        private Integer layout;
-        private Cursor cr;
-        private final LayoutInflater inflater;
-
         public CustomCursorAdapter(Context context, Integer l, Cursor c, String[] from, int[] to, int flags) {
             super(context, l, c, from, to, flags);
-            layout=l;
-            mContext = context;
-            inflater=LayoutInflater.from(context);
-            cr=c;
         }
 
         @Override
@@ -153,10 +143,12 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
             listName.setText(cursor.getString(name_index));
             listDateTime.setText(sdf.format(cursor.getLong(datetime_index) * 1000));
 
+            //Log.d("Jay", cursor.getString(feedback_index));
             if (!TextUtils.isEmpty(cursor.getString(feedback_index))) {
                 ic_done.setVisibility(View.VISIBLE);
             }
 
+            Log.d("Jay", cursor.getString(response_index));
             if (!TextUtils.isEmpty(cursor.getString(response_index))) {
                 ic_comment.setVisibility(View.VISIBLE);
             }

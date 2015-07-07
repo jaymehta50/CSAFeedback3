@@ -1,12 +1,13 @@
 package uk.co.jaymehta.csafeedback;
 
 import android.app.Activity;
+import android.content.ContentValues;
+import android.net.Uri;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 
 public class FeedbackActivity extends Activity implements FeedbackActivityFragment.OnEventSelectedListener {
@@ -23,7 +24,6 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
                     .commit();
         }
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -52,6 +52,24 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
                 .replace(R.id.container, FeedbackActivityFragment2.newInstance(id))
                 .addToBackStack(null)
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .commit();
+    }
+
+    public void saveButtonClicked(View view) {
+        ContentValues toinsert = new ContentValues();
+        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID, FeedbackActivityFragment2.selection);
+        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE, FeedbackActivityFragment2.score);
+        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_TIMESTAMP, System.currentTimeMillis());
+        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_NOTIFY_RESP, FeedbackActivityFragment2.cbresp);
+        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC, 0);
+        this.getContentResolver().insert(
+                Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
+                toinsert
+        );
+
+        getFragmentManager().beginTransaction()
+                .replace(R.id.container, FeedbackActivityFragment2.newInstance(FeedbackActivityFragment2.selection))
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
                 .commit();
     }
 }

@@ -14,6 +14,7 @@ import android.content.SyncResult;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.BaseColumns;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -182,7 +183,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                         DatabaseConstants.fd_feedback.COLUMN_NAME_NOTIFY_RESP
                 },
                 DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC + "=?",
-                new String[] {"1"},
+                new String[] {"0"},
                 null
         );
 
@@ -191,7 +192,16 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         if (c.getCount() > 1) {
             Log.d("Jay", "Syncing items up");
             JSONArray data = cur2Json(c);
+            c.close();
             Log.d("Jay", data.toString());
+
+            Cursor d = mContentResolver.query(
+                    Uri.parse(DatabaseConstants.URL + "feedback"),
+                    new String[] { BaseColumns._ID },
+                    DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC + "=?",
+                    new String[] {"0"},
+                    null
+            );
 
             String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_up";
             authtokenvalues = new ContentValues();
@@ -199,6 +209,8 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             authtokenvalues.put("fd_data", data.toString());
             try {
                 PostHelper.postRequest(url_sync_up, authtokenvalues);
+                setItemsAsSynced(d);
+                d.close();
             }
             catch (IOException e) {
                 e.printStackTrace();
@@ -304,8 +316,21 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             cursor.moveToNext();
         }
 
-        cursor.close();
         return resultSet;
+    }
 
+    public void setItemsAsSynced(Cursor cursor) {
+        cursor.moveToFirst();
+        ContentValues values = new ContentValues();
+        values.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC, 1);
+        while (!cursor.isAfterLast()) {
+            mContentResolver.update(
+                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback/" + cursor.getString(cursor.getColumnIndex(BaseColumns._ID))),
+                    values,
+                    null,
+                    null
+            );
+            cursor.moveToNext();
+        }
     }
 }

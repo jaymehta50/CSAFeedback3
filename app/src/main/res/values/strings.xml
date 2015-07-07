@@ -19,4 +19,12 @@
     <string name="title_activity_feedback">Leave Feedback</string>
 
     <string name="empty_list">You have nothing to leave feedback for!</string>
+    <string name="checkBoxString">Notify me when the Clinical School responds</string>
+    <string name="session_title">Session Title</string>
+    <string name="session_desc">Session Description</string>
+    <string name="session_datetime">Session Date and Time</string>
+    <string name="default_score">5</string>
+    <string name="score_out_of">out of 10</string>
+    <string name="comment_box">Leave a comment?</string>
+    <string name="save_text_button">Save</string>
 </resources>

@@ -1,84 +1,140 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:layout_height="wrap_content"
+    tools:context="uk.co.jaymehta.csafeedback.FeedbackActivityFragment2"
+    android:fillViewport="true">
+
+<LinearLayout android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context="uk.co.jaymehta.csafeedback.FeedbackActivityFragment2">
+    android:paddingBottom="@dimen/activity_vertical_margin">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Session Title"
+        android:textAppearance="@style/Base.TextAppearance.AppCompat.Headline"
+        android:text="@string/session_title"
         android:id="@+id/textTitle"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:textAlignment="center"
+        android:gravity="center_horizontal"
+        android:layout_gravity="center_horizontal" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Session Description"
+        android:text="@string/session_desc"
         android:id="@+id/textDesc"
-        android:layout_below="@+id/textTitle"
-        android:layout_centerHorizontal="true" />
+        android:textAlignment="center"
+        android:gravity="center_horizontal"
+        android:layout_gravity="center_horizontal" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Session Date and Time"
+        android:text="@string/session_datetime"
         android:id="@+id/textDateTime"
-        android:layout_below="@+id/textDesc"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="20dp" />
+        android:layout_marginTop="20dp"
+        android:textAlignment="center"
+        android:gravity="center_horizontal"
+        android:layout_gravity="center_horizontal" />
 
 
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true">
+        android:layout_height="wrap_content" >
 
         <SeekBar
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/seekBarScore"
-            android:layout_centerVertical="true"
-            android:layout_centerHorizontal="true"
             android:max="10"
-            android:progress="5"/>
+            android:progress="5"
+            android:layout_marginTop="50dp" />
 
-        <TextView
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="5"
-            android:id="@+id/textScore"
-            android:layout_below="@+id/seekBarScore"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="15dp"
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
             android:background="@drawable/score_circle"
-            android:gravity="center_vertical|center_horizontal"
-            android:layout_gravity="center_horizontal" />
+            android:id="@+id/circle_layout"
+            android:layout_gravity="center_horizontal">
+
+            <TextView
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="@string/default_score"
+                android:id="@+id/textScore"
+                android:textSize="@dimen/abc_text_size_display_1_material"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="37dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="@string/score_out_of"
+                android:id="@+id/textView6"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center_horizontal"
+                android:textAlignment="center" />
+        </LinearLayout>
 
 
     </LinearLayout>
 
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/checkBoxString"
+        android:id="@+id/checkBoxRespond"
+        android:textColor="#000000"
+        android:gravity="center_vertical|center_horizontal"
+        android:textAlignment="center"
+        android:checked="true"
+        android:elegantTextHeight="true"
+        android:enabled="true"
+        android:visibility="visible"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="10dp" />
+
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:id="@+id/textComment"
+        android:enabled="true"
+        android:hint="@string/comment_box"
+        android:textColor="#000000"
+        android:visibility="gone"
+        android:background="@drawable/text_box"
+        android:textStyle="normal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:padding="8dp"
+        android:scrollbars="vertical"
+        android:inputType="textCapSentences|textAutoComplete|textAutoCorrect|textMultiLine"
+        android:gravity="top|left|start"
+        android:nestedScrollingEnabled="true" />
+
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Save"
+        android:text="@string/save_text_button"
         android:id="@+id/saveButton"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
         android:background="@drawable/save_button"
         android:textColor="@color/primary_text"
         android:textColorHighlight="@color/window_background"
-        android:textSize="@dimen/abc_text_size_medium_material" />
+        android:textSize="@dimen/abc_text_size_medium_material"
+        android:onClick="saveButtonClicked"
+        android:layout_gravity="center_horizontal" />
 
 
-
-</RelativeLayout>
+</LinearLayout>
+</ScrollView>
