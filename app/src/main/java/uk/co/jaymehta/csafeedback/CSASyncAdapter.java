@@ -81,23 +81,24 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         String mAuthToken;
         try {
             mAuthToken = mAccountManager.blockingGetAuthToken(account, AccountConstants.AUTH_TOKEN_TYPE, true);
+            Log.d("Jay", "SyncAdapter > " + mAuthToken);
 
             //Check that authtoken has not already been invalidated e.g. by a previous run of this adapter, if yes then quit
             if(TextUtils.isEmpty(mAuthToken)) { return; }
         }
         catch (OperationCanceledException e) {
             e.printStackTrace();
-            Log.d("Jay", e.getMessage());
+            Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
         catch (IOException e) {
             e.printStackTrace();
-            Log.d("Jay", e.getMessage());
+            Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
         catch (AuthenticatorException e) {
             e.printStackTrace();
-            Log.d("Jay", e.getMessage());
+            Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
 
@@ -111,14 +112,14 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
         catch (IOException e) {
             e.printStackTrace();
-            Log.d("Jay", e.getMessage());
+            Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
-        Log.d("Jay", result);
+        Log.d("Jay", "SyncAdapter > " + result);
 
         //Result shows that this user should not have access to this system... How odd... Remove their account, maybe a fresh login will help
         if (result.equals("invalid_user")) {
-            Log.d("Jay", "Invalid user");
+            Log.d("Jay", "SyncAdapter > " + "Invalid user");
             mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
             mAccountManager.removeAccountExplicitly(account);
             return;
@@ -126,7 +127,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
         //Result shows that user's token has expired (probably hasn't logged in for 3 months), invalidate token and user can re-logon on next app usage
         if (result.equals("expired_token")) {
-            Log.d("Jay", "Expired token");
+            Log.d("Jay", "SyncAdapter > " + "Expired token");
             mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
             return;
         }
@@ -144,17 +145,19 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         if(prefs.getBoolean(mContext.getString(R.string.run_renewal_bool), false)) {
             //If yes - renew auth token
             Long tokenRenewed = prefs.getLong(mContext.getString(R.string.time_since_renew), 0);
-            Log.d("Jay", tokenRenewed.toString());
+            Log.d("Jay", "SyncAdapter > " + new Date(tokenRenewed).toString());
 
             //Has it been more than the number of hours specified in AccountConstants since the last authtoken renewal?
             if (tokenRenewed <= System.currentTimeMillis()) {
                 //Yes - get and store new authtoken and invalidate prior one
                 String url_renew_token = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token";
+                Log.d("Jay", "SyncAdapter > " + "Renewing token");
                 try {
                     result = PostHelper.postRequest(url_renew_token, authtokenvalues);
+                    Log.d("Jay", "SyncAdapter > " + result);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    Log.d("Jay", e.getMessage());
+                    Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     return;
                 }
 
@@ -164,7 +167,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
                 //Update datetime after which next renewal can take place
                 Long newDate = System.currentTimeMillis() + (AccountConstants.HOURS_BETWEEN_RENEW_TOKEN * 3600 * 1000);
-                Log.d("Jay", newDate.toString());
+                Log.d("Jay", "SyncAdapter > " + new Date(newDate).toString());
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putLong(mContext.getString(R.string.time_since_renew), newDate);
                 editor.apply();
@@ -173,7 +176,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
 
         //Get any unsynced items ready to sync up to server
-        Log.d("Jay", "Get any unsynced items ready to sync up to server");
+        Log.d("Jay", "SyncAdapter > " + "Get any unsynced items ready to sync up to server");
         Cursor c = mContentResolver.query(
                 Uri.parse(DatabaseConstants.URL + "feedback"),
                 new String[] {
@@ -189,12 +192,12 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         );
 
         //If there are any un-synced items, sync them up to server now
-        Log.d("Jay", "If there are any un-synced items, sync them up to server now");
+        Log.d("Jay", "SyncAdapter > " + "If there are any un-synced items, sync them up to server now");
         if (c.getCount() > 1) {
-            Log.d("Jay", "Syncing items up");
+            Log.d("Jay", "SyncAdapter > " + "Syncing items up");
             JSONArray data = cur2Json(c);
             c.close();
-            Log.d("Jay", data.toString());
+            Log.d("Jay", "SyncAdapter > " + data.toString());
 
             Cursor d = mContentResolver.query(
                     Uri.parse(DatabaseConstants.URL + "feedback"),
@@ -210,25 +213,26 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             authtokenvalues.put("fd_data", data.toString());
             try {
                 PostHelper.postRequest(url_sync_up, authtokenvalues);
+                Log.d("Jay", "SyncAdapter > " + "Set items as synced");
                 setItemsAsSynced(d);
                 d.close();
             }
             catch (IOException e) {
                 e.printStackTrace();
-                Log.d("Jay", e.getMessage());
+                Log.d("Jay", "SyncAdapter > " + e.getMessage());
             }
         }
 
 
         //Sync down
         //Get data to store on device
-        Log.d("Jay", "Sync down");
+        Log.d("Jay", "SyncAdapter > " + "Sync down");
         String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_down";
         authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
         try {
             result = PostHelper.postRequest(url_sync_up, authtokenvalues);
-            Log.d("Jay", result);
+            Log.d("Jay", "SyncAdapter > " + result);
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -237,12 +241,15 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
         //Convert string retrieved into JSON array
         JSONArray obj;
+        JSONArray fd_obj;
         try {
-            obj = new JSONArray(result);
-            Log.d("Jay", obj.toString(1));
+            JSONArray result_json_array = new JSONArray(result);
+            Log.d("Jay", "SyncAdapter > " + result_json_array.toString(1));
+            obj = result_json_array.getJSONArray(0);
+            fd_obj = result_json_array.getJSONArray(1);
         } catch (Throwable t) {
             t.printStackTrace();
-            Log.d("Jay", "Could not parse malformed JSON: \"" + result + "\"");
+            Log.d("Jay", "SyncAdapter > " + "Could not parse malformed JSON: \"" + result + "\"");
             return;
         }
 
@@ -269,14 +276,14 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                 }
                 catch (JSONException e) {
                     e.printStackTrace();
-                    Log.d("Jay", e.getMessage());
+                    Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     return;
                 }
             }
 
             //If first time this has run, delete existing entries
             if (first) {
-                Log.d("Jay", "Delete existing entries");
+                Log.d("Jay", "SyncAdapter > " + "Delete existing entries");
                 mContentResolver.delete(
                         Uri.parse(DatabaseConstants.URL + "events"),
                         null,
@@ -286,9 +293,57 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             first = false;
 
             //Insert current row
-            Log.d("Jay", "Insert current row");
+            Log.d("Jay", "SyncAdapter > " + "Insert current row to events table");
             mContentResolver.insert(
                     Uri.parse(DatabaseConstants.URL + "events"),
+                    toinsert
+            );
+            toinsert.clear();
+        }
+
+        //Convert JSONArray into ContentValues, delete existing entries, and insert each newly downloaded one
+        first = true;
+        for (int i = 0, size = fd_obj.length(); i < size; i++)
+        {
+            ContentValues toinsert = new ContentValues();
+            JSONObject objectInArray;
+            try {
+                objectInArray = fd_obj.getJSONObject(i);
+            }
+            catch (JSONException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            JSONArray elementNames = objectInArray.names();
+            for (int j = 0, size2 = elementNames.length(); j < size2; j++)
+            {
+                try {
+                    //Convert JSONArray to ContentValues
+                    toinsert.put(elementNames.getString(j), objectInArray.getString(elementNames.getString(j)));
+                }
+                catch (JSONException e) {
+                    e.printStackTrace();
+                    Log.d("Jay", "SyncAdapter > " + e.getMessage());
+                    return;
+                }
+            }
+
+            //If first time this has run, delete existing entries
+            if (first) {
+                Log.d("Jay", "SyncAdapter > " + "Delete existing entries");
+                mContentResolver.delete(
+                        Uri.parse(DatabaseConstants.URL + "feedback"),
+                        DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC + "=?",
+                        new String[] { "1" }
+                );
+            }
+            first = false;
+
+            //Insert current row
+            Log.d("Jay", "SyncAdapter > " + "Insert current row to feedback table");
+            mContentResolver.insert(
+                    Uri.parse(DatabaseConstants.URL + "feedback"),
                     toinsert
             );
             toinsert.clear();
@@ -311,7 +366,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                         rowObject.put(cursor.getColumnName(i),
                                 cursor.getString(i));
                     } catch (Exception e) {
-                        Log.d("Jay", e.getMessage());
+                        Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     }
                 }
             }

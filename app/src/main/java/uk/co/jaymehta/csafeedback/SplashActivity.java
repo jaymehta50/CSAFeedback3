@@ -1,5 +1,7 @@
 package uk.co.jaymehta.csafeedback;
 
+import com.crashlytics.android.Crashlytics;
+import io.fabric.sdk.android.Fabric;
 import uk.co.jaymehta.csafeedback.util.SystemUiHider;
 
 import android.accounts.Account;
@@ -96,6 +98,7 @@ public class SplashActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Fabric.with(this, new Crashlytics());
 
         setContentView(R.layout.activity_splash);
 

@@ -88,11 +88,10 @@ public class FeedbackActivityFragment2 extends Fragment {
         checkBoxResponse.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                if(b) {
+                if (b) {
                     Log.d("Jay", "cbresp to 1");
                     cbresp = 1;
-                }
-                else {
+                } else {
                     Log.d("Jay", "cbresp to 0");
                     cbresp = 0;
                 }
@@ -116,24 +115,26 @@ public class FeedbackActivityFragment2 extends Fragment {
             }
         });
 
-        editTextComment = (EditText) getActivity().findViewById(R.id.textComment);
-        editTextComment.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                //
-            }
+        editTextComment = (EditText) v.findViewById(R.id.textComment);
+        if (editTextComment.getVisibility()==View.VISIBLE) {
+            editTextComment.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    //
+                }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                //
-            }
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    //
+                }
 
-            @Override
-            public void afterTextChanged(Editable s) {
-                comment = s.toString();
-                commentAdded = true;
-            }
-        });
+                @Override
+                public void afterTextChanged(Editable s) {
+                    comment = s.toString();
+                    commentAdded = true;
+                }
+            });
+        }
 
 
         new CompleteUI().execute(selection);
