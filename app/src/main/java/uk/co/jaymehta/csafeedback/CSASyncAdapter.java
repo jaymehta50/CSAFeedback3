@@ -9,6 +9,7 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
@@ -292,6 +293,8 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             );
             toinsert.clear();
         }
+
+        getContext().sendBroadcast(new Intent(mContext, FeedbackActivity.class));
     }
 
     //Converts a cursor into a JSONArray

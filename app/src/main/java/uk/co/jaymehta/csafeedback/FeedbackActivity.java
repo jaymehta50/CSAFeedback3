@@ -3,8 +3,10 @@ package uk.co.jaymehta.csafeedback;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.provider.BaseColumns;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -56,16 +58,33 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
     }
 
     public void saveButtonClicked(View view) {
-        ContentValues toinsert = new ContentValues();
-        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID, FeedbackActivityFragment2.selection);
-        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE, FeedbackActivityFragment2.score);
-        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_TIMESTAMP, System.currentTimeMillis());
-        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_NOTIFY_RESP, FeedbackActivityFragment2.cbresp);
-        toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC, 0);
-        this.getContentResolver().insert(
-                Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
-                toinsert
-        );
+        if(FeedbackActivityFragment2.commentAdded) {
+            ContentValues toupdate = new ContentValues();
+            toupdate.put(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT, FeedbackActivityFragment2.comment);
+
+            this.getContentResolver().update(
+                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
+                    toupdate,
+                    DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",
+                    new String[]{FeedbackActivityFragment2.selection.toString()}
+            );
+
+            Log.d("Jay", toupdate.toString());
+        }
+        else {
+            ContentValues toinsert = new ContentValues();
+            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID, FeedbackActivityFragment2.selection);
+            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE, FeedbackActivityFragment2.score);
+            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_TIMESTAMP, System.currentTimeMillis());
+            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_NOTIFY_RESP, FeedbackActivityFragment2.cbresp);
+            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC, 0);
+            this.getContentResolver().insert(
+                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
+                    toinsert
+            );
+
+            Log.d("Jay", toinsert.toString());
+        }
 
         getFragmentManager().beginTransaction()
                 .replace(R.id.container, FeedbackActivityFragment2.newInstance(FeedbackActivityFragment2.selection))

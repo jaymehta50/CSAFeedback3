@@ -3,6 +3,7 @@ package uk.co.jaymehta.csafeedback;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -15,10 +16,15 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SimpleCursorAdapter;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -28,6 +34,8 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.w3c.dom.Text;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -39,13 +47,17 @@ import java.util.Locale;
  */
 public class FeedbackActivityFragment2 extends Fragment {
 
-    private static final String ARG_PARAM1 = "arg1";
     public static Long selection;
     public static Integer score;
     public static Integer cbresp = 1;
+    public static String comment;
+    public static Boolean commentAdded = false;
+
+    private static final String ARG_PARAM1 = "arg1";
     private SeekBar seekBarScore;
     private TextView textScore;
     private CheckBox checkBoxResponse;
+    private EditText editTextComment;
 
     public FeedbackActivityFragment2() {
     }
@@ -103,6 +115,27 @@ public class FeedbackActivityFragment2 extends Fragment {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
+
+        editTextComment = (EditText) getActivity().findViewById(R.id.textComment);
+        editTextComment.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                //
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                //
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                comment = s.toString();
+                commentAdded = true;
+            }
+        });
+
+
         new CompleteUI().execute(selection);
 
     return v;
@@ -151,19 +184,22 @@ public class FeedbackActivityFragment2 extends Fragment {
                 Cursor sCursor = result[1];
                 sCursor.moveToFirst();
 
-                TextView textScore = (TextView) getActivity().findViewById(R.id.textScore);
                 textScore.setText(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE)));
+                seekBarScore.setVisibility(View.GONE);
+                checkBoxResponse.setVisibility(View.GONE);
 
                 LinearLayout l = (LinearLayout) getActivity().findViewById(R.id.circle_layout);
                 l.setBackgroundResource(R.drawable.score_circle_green);
 
-                SeekBar seekBarScore = (SeekBar) getActivity().findViewById(R.id.seekBarScore);
-                seekBarScore.setVisibility(View.GONE);
-
-                checkBoxResponse.setVisibility(View.GONE);
-
-                EditText editTextComment = (EditText) getActivity().findViewById(R.id.textComment);
                 editTextComment.setVisibility(View.VISIBLE);
+
+                if(!TextUtils.isEmpty(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT))) && !sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)).equals("")) {
+                    editTextComment.setText(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)));
+                    editTextComment.setInputType(InputType.TYPE_NULL);
+
+                    Button saveButton = (Button) getActivity().findViewById(R.id.saveButton);
+                    saveButton.setVisibility(View.GONE);
+                }
 
                 sCursor.close();
             }

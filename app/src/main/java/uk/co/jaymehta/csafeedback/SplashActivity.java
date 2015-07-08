@@ -10,10 +10,12 @@ import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -80,6 +82,15 @@ public class SplashActivity extends Activity {
     private AccountManager mAccountManager;
 
     private ContentResolver mResolver;
+
+    private static IntentFilter syncIntentFilter = new IntentFilter("uk.co.jaymehta.csafeedback.FeedbackActivity");
+
+    private BroadcastReceiver syncBroadcastReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            //Switch to the main app page
+            startActivity(intent);
+        }
+    };
 
 
     @Override
@@ -258,9 +269,7 @@ public class SplashActivity extends Activity {
 
                         mResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
 
-                        //Switch to the main app page
-                        Intent intent = new Intent(getApplicationContext(), FeedbackActivity.class);
-                        startActivity(intent);
+
                     }
                     else {
                         //Must have been an error (more/less than one CSA account) so show error page
@@ -331,4 +340,17 @@ public class SplashActivity extends Activity {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // register for sync
+        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
+        // do your resuming magic
+    }
+
+    @Override protected void onPause() {
+        unregisterReceiver(syncBroadcastReceiver);
+        super.onPause();
+    };
 }
