@@ -11,6 +11,7 @@ import android.media.Image;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,6 +21,8 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+
+import com.crashlytics.android.Crashlytics;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -55,6 +58,7 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
         try {
             mCallback = (OnEventSelectedListener) activity;
         } catch (ClassCastException e) {
+            Crashlytics.getInstance().core.logException(e);
             throw new ClassCastException(activity.toString()
                     + " must implement OnEventSelectedListener");
         }
@@ -87,8 +91,7 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
                 BaseColumns._ID,
                 DatabaseConstants.fd_events.COLUMN_NAME_NAME,
                 DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME,
-                DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER,
-                DatabaseConstants.fd_events.COLUMN_NAME_FEEDBACK_ID
+                DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT
         };
         // This is the select criteria
         final Uri sUri = Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "events");
@@ -121,37 +124,69 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
 
     private class CustomCursorAdapter extends SimpleCursorAdapter {
 
-        public CustomCursorAdapter(Context context, Integer l, Cursor c, String[] from, int[] to, int flags) {
-            super(context, l, c, from, to, flags);
+        private Context mContext;
+        private Context appContext;
+        private int layout;
+        private Cursor cr;
+        private final LayoutInflater inflater;
+
+        private class ViewHolder  {
+            int nameIndex;
+            int timeIndex;
+            int respIndex;
+            TextView name;
+            TextView time;
+            ImageView ic_comment;
+            ImageView ic_done;
+        }
+
+        public CustomCursorAdapter(Context context, Integer layout, Cursor c, String[] from, int[] to, int flags) {
+            super(context,layout,c,from,to, flags);
+            this.layout=layout;
+            this.mContext = context;
+            this.inflater=LayoutInflater.from(context);
+            this.cr=c;
         }
 
         @Override
-        public void bindView(View view, Context context, Cursor cursor) {
+        public View newView(Context context, Cursor cursor, ViewGroup parent) {
+            View v = inflater.inflate(layout, null);
+            ViewHolder holder = new ViewHolder();
+            holder.name = (TextView) v.findViewById(R.id.list_name);
+            holder.time = (TextView) v.findViewById(R.id.list_datetime);
+            holder.ic_comment = (ImageView) v.findViewById(R.id.comment_image);
+            holder.ic_done = (ImageView) v.findViewById(R.id.done_image);
+            holder.nameIndex = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_NAME);
+            holder.timeIndex = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME);
+            holder.respIndex = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT);
+            v.setTag(holder);
+            return v;
+        }
+
+        @Override
+        public void bindView(@NonNull View view, Context context, @NonNull Cursor cursor) {
             super.bindView(view, context, cursor);
-            TextView listName=(TextView) view.findViewById(R.id.list_name);
-            TextView listDateTime=(TextView) view.findViewById(R.id.list_datetime);
-            ImageView ic_done = (ImageView) view.findViewById(R.id.done_image);
-            ImageView ic_comment = (ImageView) view.findViewById(R.id.comment_image);
-
-            Integer name_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_NAME);
-            Integer datetime_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME);
-            Integer feedback_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_FEEDBACK_ID);
-            Integer response_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER);
-
+//            if (cursor.equals("null")) return;
+            ViewHolder holder = (ViewHolder) view.getTag();
+            holder.name.setText(cursor.getString(holder.nameIndex));
             SimpleDateFormat sdf = new SimpleDateFormat("h:mma EEE d MMM yy", Locale.UK);
+            holder.time.setText(sdf.format(cursor.getLong(holder.timeIndex) * 1000));
+            if(!cursor.getString(holder.respIndex).equals("null"))
+                holder.ic_comment.setVisibility(View.VISIBLE);
+            else holder.ic_comment.setVisibility(View.GONE);
 
-            listName.setText(cursor.getString(name_index));
-            listDateTime.setText(sdf.format(cursor.getLong(datetime_index) * 1000));
+            Cursor c = getActivity().getContentResolver().query(
+                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),   // The content URI of the words table
+                    new String[] {BaseColumns._ID},                        // The columns to return for each row
+                    DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",                    // Selection criteria
+                    new String[] { cursor.getString(cursor.getColumnIndex(BaseColumns._ID)) },                     // Selection criteria
+                    null);
 
-            //Log.d("Jay", cursor.getString(feedback_index));
-            if (!TextUtils.isEmpty(cursor.getString(feedback_index))) {
-                ic_done.setVisibility(View.VISIBLE);
-            }
-
-            Log.d("Jay", cursor.getString(response_index));
-            if (!TextUtils.isEmpty(cursor.getString(response_index))) {
-                ic_comment.setVisibility(View.VISIBLE);
-            }
+            Integer count = c.getCount();
+            if (count.equals(0))
+                holder.ic_done.setVisibility(View.GONE);
+            else holder.ic_done.setVisibility(View.VISIBLE);
+            c.close();
         }
 
     }

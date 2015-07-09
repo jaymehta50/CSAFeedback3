@@ -30,27 +30,27 @@
     </LinearLayout>
 
     <ImageView
-        android:layout_width="wrap_content"
+        android:layout_width="25dp"
         android:id="@+id/done_image"
         android:src="@mipmap/ic_done_white"
         android:layout_weight="0"
         android:layout_gravity="center_vertical|right"
-        android:visibility="gone"
         android:background="@drawable/save_button"
         android:layout_marginRight="5dp"
         android:layout_marginLeft="5dp"
-        android:layout_height="wrap_content" />
+        android:visibility="gone"
+        android:layout_height="25dp" />
 
     <ImageView
-        android:layout_width="wrap_content"
+        android:layout_width="25dp"
         android:id="@+id/comment_image"
         android:src="@mipmap/ic_comment_white"
         android:layout_weight="0"
         android:layout_gravity="center_vertical|right"
-        android:background="@drawable/blue_button"
+        android:background="@drawable/camblue_button"
         android:layout_marginLeft="5dp"
         android:layout_marginRight="5dp"
         android:visibility="gone"
-        android:layout_height="wrap_content" />
+        android:layout_height="25dp" />
 
 </LinearLayout>

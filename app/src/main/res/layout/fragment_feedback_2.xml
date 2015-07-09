@@ -38,55 +38,89 @@
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="@string/session_datetime"
         android:id="@+id/textDateTime"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="5dp"
         android:textAlignment="center"
         android:gravity="center_horizontal"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="30dp" />
 
 
     <LinearLayout
         android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/text_box_camblue"
+        android:paddingLeft="12dp"
+        android:paddingTop="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="4dp"
+        android:id="@+id/linearLayoutResponse"
+        android:visibility="gone"
+        android:layout_marginBottom="30dp">
 
-        <SeekBar
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/seekBarScore"
-            android:max="10"
-            android:progress="5"
-            android:layout_marginTop="50dp" />
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Response"
+            android:id="@+id/textResponse"
+            android:layout_gravity="center_horizontal"
+            android:textIsSelectable="true"
+            android:textColor="@color/primary_text"
+            android:textStyle="italic"
+            android:visibility="visible"
+            android:layout_marginBottom="12dp"
+            android:textAlignment="center" />
 
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="150dp"
-            android:layout_height="150dp"
-            android:background="@drawable/score_circle"
-            android:id="@+id/circle_layout"
-            android:layout_gravity="center_horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="from"
+            android:id="@+id/textResponseFrom"
+            android:layout_gravity="center_horizontal"
+            android:textColor="@color/primary_text"
+            android:textSize="12dp"
+            android:textAlignment="center" />
+    </LinearLayout>
 
-            <TextView
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="@string/default_score"
-                android:id="@+id/textScore"
-                android:textSize="@dimen/abc_text_size_display_1_material"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="37dp" />
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/seekBarScore"
+        android:max="10"
+        android:progress="5"
+        android:layout_marginTop="30dp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceSmall"
-                android:text="@string/score_out_of"
-                android:id="@+id/textView6"
-                android:layout_gravity="center_horizontal"
-                android:gravity="center_horizontal"
-                android:textAlignment="center" />
-        </LinearLayout>
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:background="@drawable/score_circle"
+        android:id="@+id/circle_layout"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="40dp">
 
+        <TextView
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/default_score"
+            android:id="@+id/textScore"
+            android:textSize="@dimen/abc_text_size_display_1_material"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="39dp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="@string/score_out_of"
+            android:id="@+id/textView6"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center_horizontal"
+            android:textAlignment="center" />
     </LinearLayout>
 
     <CheckBox
@@ -102,24 +136,36 @@
         android:enabled="true"
         android:visibility="visible"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="30dp"
         android:layout_marginBottom="10dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Comment"
+        android:id="@+id/textComment"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/text_box"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:textAlignment="center" />
 
     <EditText
         android:layout_width="match_parent"
         android:layout_height="120dp"
-        android:id="@+id/textComment"
+        android:id="@+id/editTextComment"
         android:enabled="true"
         android:hint="@string/comment_box"
         android:textColor="#000000"
         android:visibility="gone"
         android:background="@drawable/text_box"
         android:textStyle="normal"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="0dp"
         android:layout_marginBottom="10dp"
         android:padding="8dp"
         android:scrollbars="vertical"
         android:inputType="textCapSentences|textAutoComplete|textAutoCorrect|textMultiLine"
+        android:imeOptions="actionDone"
         android:gravity="top|left|start"
         android:nestedScrollingEnabled="true" />
 

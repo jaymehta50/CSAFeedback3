@@ -1,8 +1,13 @@
 package uk.co.jaymehta.csafeedback;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.Fragment;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.provider.BaseColumns;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
@@ -13,6 +18,9 @@ import android.view.View;
 
 
 public class FeedbackActivity extends Activity implements FeedbackActivityFragment.OnEventSelectedListener {
+    private static final String FRAGMENT_LIST = "listFragment";
+    private static final String FRAGMENT_PAGE = "pageFragment";
+    private String mComment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,7 +28,7 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
         setContentView(R.layout.activity_feedback);
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
-                    .replace(R.id.container, FeedbackActivityFragment.newInstance())
+                    .replace(R.id.container, FeedbackActivityFragment.newInstance(), FRAGMENT_LIST)
                     .addToBackStack(null)
                     .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                     .commit();
@@ -51,44 +59,79 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
 
     public void onEventSelected(long id) {
         getFragmentManager().beginTransaction()
-                .replace(R.id.container, FeedbackActivityFragment2.newInstance(id))
+                .replace(R.id.container, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
                 .addToBackStack(null)
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                 .commit();
     }
 
-    public void saveButtonClicked(View view) {
-        if(FeedbackActivityFragment2.commentAdded) {
-            ContentValues toupdate = new ContentValues();
-            toupdate.put(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT, FeedbackActivityFragment2.comment);
+    public void saveDataButtonClicked(Boolean commentAdd, String comment) {
+        mComment = comment;
+        new saveData().execute(commentAdd);
+    }
 
-            this.getContentResolver().update(
-                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
-                    toupdate,
-                    DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",
-                    new String[]{FeedbackActivityFragment2.selection.toString()}
-            );
+    private class saveData extends AsyncTask<Boolean, Void, Void> {
+        @Override
+        protected Void doInBackground(Boolean... params) {
+            Log.d("Jay", params[0].toString());
+            if(params[0]) {
+                Log.d("Jay", "String from class: "+FeedbackActivityFragment2.comment);
+                Log.d("Jay", "String from mComment: "+mComment);
 
-            Log.d("Jay", toupdate.toString());
+                ContentValues toupdate = new ContentValues();
+                toupdate.put(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT, mComment);
+                toupdate.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC, 0);
+
+                Integer answer = getApplicationContext().getContentResolver().update(
+                        Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
+                        toupdate,
+                        DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",
+                        new String[]{FeedbackActivityFragment2.selection.toString()}
+                );
+
+                Log.d("Jay", "Tried updating comment, answer=" + answer);
+                Log.d("Jay", toupdate.toString());
+            }
+            else {
+                ContentValues toinsert = new ContentValues();
+                toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID, FeedbackActivityFragment2.selection);
+                toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE, FeedbackActivityFragment2.score);
+                toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_TIMESTAMP, Math.round(System.currentTimeMillis() / 1000));
+                toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_NOTIFY_RESP, FeedbackActivityFragment2.cbresp);
+                toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC, 0);
+                getApplicationContext().getContentResolver().insert(
+                        Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
+                        toinsert
+                );
+
+                Log.d("Jay", toinsert.toString());
+            }
+
+            //Get an updated list of accounts, which should include the recently created one
+            Account[] arrayAccounts = AccountManager.get(getApplicationContext()).getAccountsByType(AccountConstants.ACCOUNT_TYPE);
+            //If more/less than one account return, quit because thats weird...
+            if(arrayAccounts.length!=1) return null;
+
+            // Tell syncadapter to run so info is sent to server, but not expedited run
+            Bundle settingsBundle = new Bundle();
+            settingsBundle.putBoolean(
+                    ContentResolver.SYNC_EXTRAS_MANUAL, true);
+            settingsBundle.putBoolean(
+                    ContentResolver.SYNC_EXTRAS_EXPEDITED, false);
+
+            getContentResolver().requestSync(arrayAccounts[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
+
+            return null;
         }
-        else {
-            ContentValues toinsert = new ContentValues();
-            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID, FeedbackActivityFragment2.selection);
-            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SCORE, FeedbackActivityFragment2.score);
-            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_TIMESTAMP, System.currentTimeMillis());
-            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_NOTIFY_RESP, FeedbackActivityFragment2.cbresp);
-            toinsert.put(DatabaseConstants.fd_feedback.COLUMN_NAME_SYNC, 0);
-            this.getContentResolver().insert(
-                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
-                    toinsert
-            );
 
-            Log.d("Jay", toinsert.toString());
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            Fragment f = getFragmentManager().findFragmentByTag(FRAGMENT_PAGE);
+            getFragmentManager().beginTransaction()
+                    .detach(f)
+                    .attach(f)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+                    .commit();
         }
-
-        getFragmentManager().beginTransaction()
-                .replace(R.id.container, FeedbackActivityFragment2.newInstance(FeedbackActivityFragment2.selection))
-                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
-                .commit();
     }
 }
