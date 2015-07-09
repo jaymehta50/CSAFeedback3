@@ -16,8 +16,11 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.BaseColumns;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
+
+import com.crashlytics.android.Crashlytics;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -87,16 +90,19 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             if(TextUtils.isEmpty(mAuthToken)) { return; }
         }
         catch (OperationCanceledException e) {
+            Crashlytics.getInstance().core.logException(e);
             e.printStackTrace();
             Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
         catch (IOException e) {
+            Crashlytics.getInstance().core.logException(e);
             e.printStackTrace();
             Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
         catch (AuthenticatorException e) {
+            Crashlytics.getInstance().core.logException(e);
             e.printStackTrace();
             Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
@@ -111,6 +117,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             result = PostHelper.postRequest(url_checkvalid, authtokenvalues);
         }
         catch (IOException e) {
+            Crashlytics.getInstance().core.logException(e);
             e.printStackTrace();
             Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
@@ -156,6 +163,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                     result = PostHelper.postRequest(url_renew_token, authtokenvalues);
                     Log.d("Jay", "SyncAdapter > " + result);
                 } catch (IOException e) {
+                    Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     return;
@@ -212,12 +220,14 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             authtokenvalues.put("authtoken", mAuthToken);
             authtokenvalues.put("fd_data", data.toString());
             try {
-                PostHelper.postRequest(url_sync_up, authtokenvalues);
+                String postresponse = PostHelper.postRequest(url_sync_up, authtokenvalues);
+                Log.d("Jay", postresponse);
                 Log.d("Jay", "SyncAdapter > " + "Set items as synced");
                 setItemsAsSynced(d);
                 d.close();
             }
             catch (IOException e) {
+                Crashlytics.getInstance().core.logException(e);
                 e.printStackTrace();
                 Log.d("Jay", "SyncAdapter > " + e.getMessage());
             }
@@ -232,9 +242,9 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         authtokenvalues.put("authtoken", mAuthToken);
         try {
             result = PostHelper.postRequest(url_sync_up, authtokenvalues);
-            Log.d("Jay", "SyncAdapter > " + result);
         }
         catch (IOException e) {
+            Crashlytics.getInstance().core.logException(e);
             e.printStackTrace();
             return;
         }
@@ -248,6 +258,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             obj = result_json_array.getJSONArray(0);
             fd_obj = result_json_array.getJSONArray(1);
         } catch (Throwable t) {
+            Crashlytics.getInstance().core.logException(t);
             t.printStackTrace();
             Log.d("Jay", "SyncAdapter > " + "Could not parse malformed JSON: \"" + result + "\"");
             return;
@@ -263,6 +274,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                 objectInArray = obj.getJSONObject(i);
             }
             catch (JSONException e) {
+                Crashlytics.getInstance().core.logException(e);
                 e.printStackTrace();
                 return;
             }
@@ -275,6 +287,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                     toinsert.put(elementNames.getString(j), objectInArray.getString(elementNames.getString(j)));
                 }
                 catch (JSONException e) {
+                    Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     return;
@@ -311,6 +324,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                 objectInArray = fd_obj.getJSONObject(i);
             }
             catch (JSONException e) {
+                Crashlytics.getInstance().core.logException(e);
                 e.printStackTrace();
                 return;
             }
@@ -323,6 +337,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                     toinsert.put(elementNames.getString(j), objectInArray.getString(elementNames.getString(j)));
                 }
                 catch (JSONException e) {
+                    Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     return;
@@ -349,7 +364,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             toinsert.clear();
         }
 
-        getContext().sendBroadcast(new Intent(mContext, FeedbackActivity.class));
+        mContext.sendBroadcast(new Intent(DatabaseConstants.SYNC_FINISH));
     }
 
     //Converts a cursor into a JSONArray
@@ -366,6 +381,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                         rowObject.put(cursor.getColumnName(i),
                                 cursor.getString(i));
                     } catch (Exception e) {
+                        Crashlytics.getInstance().core.logException(e);
                         Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     }
                 }

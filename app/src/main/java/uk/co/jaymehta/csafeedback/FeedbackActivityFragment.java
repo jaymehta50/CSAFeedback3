@@ -21,6 +21,8 @@ import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
+import com.crashlytics.android.Crashlytics;
+
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
@@ -55,6 +57,7 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
         try {
             mCallback = (OnEventSelectedListener) activity;
         } catch (ClassCastException e) {
+            Crashlytics.getInstance().core.logException(e);
             throw new ClassCastException(activity.toString()
                     + " must implement OnEventSelectedListener");
         }
@@ -87,8 +90,7 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
                 BaseColumns._ID,
                 DatabaseConstants.fd_events.COLUMN_NAME_NAME,
                 DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME,
-                DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER,
-                DatabaseConstants.fd_events.COLUMN_NAME_FEEDBACK_ID
+                DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT
         };
         // This is the select criteria
         final Uri sUri = Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "events");
@@ -132,24 +134,30 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
             TextView listDateTime=(TextView) view.findViewById(R.id.list_datetime);
             ImageView ic_done = (ImageView) view.findViewById(R.id.done_image);
             ImageView ic_comment = (ImageView) view.findViewById(R.id.comment_image);
-
-            Integer name_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_NAME);
-            Integer datetime_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME);
-            Integer feedback_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_FEEDBACK_ID);
-            Integer response_index = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER);
+            
+            String responseText = cursor.getString(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT));
 
             SimpleDateFormat sdf = new SimpleDateFormat("h:mma EEE d MMM yy", Locale.UK);
 
-            listName.setText(cursor.getString(name_index));
-            listDateTime.setText(sdf.format(cursor.getLong(datetime_index) * 1000));
+            listName.setText(cursor.getString(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_NAME)));
+            listDateTime.setText(sdf.format(cursor.getLong(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME)) * 1000));
 
-            //Log.d("Jay", cursor.getString(feedback_index));
-            if (!TextUtils.isEmpty(cursor.getString(feedback_index))) {
+            Cursor c = getActivity().getContentResolver().query(
+                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),   // The content URI of the words table
+                    new String[] {BaseColumns._ID},                        // The columns to return for each row
+                    DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",                    // Selection criteria
+                    new String[] { cursor.getString(cursor.getColumnIndex(BaseColumns._ID)) },                     // Selection criteria
+                    null);
+
+            Log.d("Jay", cursor.getString(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_NAME)) + " " + c.getCount());
+            if (c.getCount() != 0) {
                 ic_done.setVisibility(View.VISIBLE);
             }
 
-            Log.d("Jay", cursor.getString(response_index));
-            if (!TextUtils.isEmpty(cursor.getString(response_index))) {
+            if(!TextUtils.isEmpty(responseText) &&
+                    !responseText.equals("") &&
+                    !responseText.equals("null") &&
+                    !responseText.equals("Null")) {
                 ic_comment.setVisibility(View.VISIBLE);
             }
         }

@@ -14,7 +14,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -29,21 +28,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -85,14 +70,16 @@ public class SplashActivity extends Activity {
 
     private ContentResolver mResolver;
 
-    private static IntentFilter syncIntentFilter = new IntentFilter("uk.co.jaymehta.csafeedback.FeedbackActivity");
+    private static final IntentFilter syncIntentFilter = new IntentFilter(DatabaseConstants.SYNC_FINISH);
 
     private BroadcastReceiver syncBroadcastReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             //Switch to the main app page
-            startActivity(intent);
+            Intent i = new Intent(context, FeedbackActivity.class);
+            startActivity(i);
         }
     };
+
 
 
     @Override
@@ -168,6 +155,7 @@ public class SplashActivity extends Activity {
         //Prep account and resolver variables
         mResolver = getContentResolver();
         mAccountManager = AccountManager.get(this);
+        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
 
         //Check for a valid account in an asynctask
         new checkLoginStatus().execute();
@@ -188,6 +176,7 @@ public class SplashActivity extends Activity {
             else if (arrayAccounts.length==1) {
                 //One CSA account found - get its auth token
                 Account mAccount = arrayAccounts[0];
+                Crashlytics.getInstance().core.setUserIdentifier(mAccount.toString());
                 AccountManagerFuture<Bundle> amf = mAccountManager.getAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, null, new AccountLoginAct(), null, null);
 
                 //Set the sync adapter to run automatically
@@ -201,16 +190,19 @@ public class SplashActivity extends Activity {
                     }
                 }
                 catch (OperationCanceledException e) {
+                    Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     showMessage(e.getMessage());
                     return 0;
                 }
                 catch (IOException e) {
+                    Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     showMessage(e.getMessage());
                     return 0;
                 }
                 catch (AuthenticatorException e) {
+                    Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     showMessage(e.getMessage());
                     return 0;
@@ -262,7 +254,7 @@ public class SplashActivity extends Activity {
 
                     //Double check - there should still only be one CSA account
                     if (arrayAccounts2.length==1) {
-
+                        Crashlytics.getInstance().core.setUserIdentifier(arrayAccounts2[0].toString());
                         // Force syncadapter to run now so that user has all the information downloaded for first use
                         Bundle settingsBundle = new Bundle();
                         settingsBundle.putBoolean(
@@ -271,8 +263,6 @@ public class SplashActivity extends Activity {
                                 ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
 
                         mResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
-
-
                     }
                     else {
                         //Must have been an error (more/less than one CSA account) so show error page
@@ -281,6 +271,7 @@ public class SplashActivity extends Activity {
                     }
 
                 } catch (Exception e) {
+                    Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     showMessage(e.getMessage());
                 }
@@ -352,7 +343,8 @@ public class SplashActivity extends Activity {
         // do your resuming magic
     }
 
-    @Override protected void onPause() {
+    @Override
+    protected void onPause() {
         unregisterReceiver(syncBroadcastReceiver);
         super.onPause();
     };

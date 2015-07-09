@@ -1,7 +1,10 @@
 package uk.co.jaymehta.csafeedback;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +14,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.BaseColumns;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.app.ListFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -21,9 +25,11 @@ import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -82,6 +88,7 @@ public class FeedbackActivityFragment2 extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_feedback_2, container, false);
+        commentAdded = false;
         textScore = (TextView) v.findViewById(R.id.textScore);
         seekBarScore = (SeekBar) v.findViewById(R.id.seekBarScore);
         checkBoxResponse = (CheckBox) v.findViewById(R.id.checkBoxRespond);
@@ -115,27 +122,24 @@ public class FeedbackActivityFragment2 extends Fragment {
             }
         });
 
-        editTextComment = (EditText) v.findViewById(R.id.textComment);
-        if (editTextComment.getVisibility()==View.VISIBLE) {
-            editTextComment.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                    //
-                }
+        editTextComment = (EditText) v.findViewById(R.id.editTextComment);
+        editTextComment.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                comment = editTextComment.getText().toString();
+                commentAdded = true;
+                Log.d("Jay", commentAdded.toString());
+            }
+        });
 
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    //
-                }
-
-                @Override
-                public void afterTextChanged(Editable s) {
-                    comment = s.toString();
-                    commentAdded = true;
-                }
-            });
-        }
-
+        Button saveButton = (Button) v.findViewById(R.id.saveButton);
+        saveButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d("Jay", "Button clicked - comment" + commentAdded.toString());
+                ((FeedbackActivity)getActivity()).saveDataButtonClicked(commentAdded, editTextComment.getText().toString());
+            }
+        });
 
         new CompleteUI().execute(selection);
 
@@ -172,6 +176,9 @@ public class FeedbackActivityFragment2 extends Fragment {
                             DatabaseConstants.fd_events.COLUMN_NAME_NAME,
                             DatabaseConstants.fd_events.COLUMN_NAME_DESC,
                             DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME,
+                            DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_NAME,
+                            DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT,
+                            DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TIME
                     },                        // The columns to return for each row
                     null,                    // Selection criteria
                     null,                     // Selection criteria
@@ -194,9 +201,16 @@ public class FeedbackActivityFragment2 extends Fragment {
 
                 editTextComment.setVisibility(View.VISIBLE);
 
-                if(!TextUtils.isEmpty(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT))) && !sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)).equals("")) {
-                    editTextComment.setText(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)));
-                    editTextComment.setInputType(InputType.TYPE_NULL);
+                if(!TextUtils.isEmpty(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT))) &&
+                        !sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)).equals("") &&
+                        !sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)).equals("null") &&
+                        !sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)).equals("Null")) {
+                    
+                    TextView textComment = (TextView) getActivity().findViewById(R.id.textComment);
+                    textComment.setText(sCursor.getString(sCursor.getColumnIndex(DatabaseConstants.fd_feedback.COLUMN_NAME_COMMENT)));
+                    textComment.setVisibility(View.VISIBLE);
+                    
+                    editTextComment.setVisibility(View.GONE);
 
                     Button saveButton = (Button) getActivity().findViewById(R.id.saveButton);
                     saveButton.setVisibility(View.GONE);
@@ -208,19 +222,42 @@ public class FeedbackActivityFragment2 extends Fragment {
             Cursor mCursor = result[0];
             mCursor.moveToFirst();
 
+            SimpleDateFormat sdf = new SimpleDateFormat("h:mma EEE d MMM yyyy", Locale.UK);
+
+            if(!TextUtils.isEmpty(mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT))) &&
+                    !mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT)).equals("") &&
+                    !mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT)).equals("null") &&
+                    !mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT)).equals("Null")) {
+
+                LinearLayout respLayout = (LinearLayout) getActivity().findViewById(R.id.linearLayoutResponse);
+                respLayout.setVisibility(View.VISIBLE);
+
+                TextView respText = (TextView) getActivity().findViewById(R.id.textResponse);
+                respText.setText(mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT)));
+
+                TextView respTextFrom = (TextView) getActivity().findViewById(R.id.textResponseFrom);
+                respTextFrom.setText("From " +
+                    mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_NAME)) +
+                    " at " +
+                    sdf.format(mCursor.getLong(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TIME)) * 1000)
+                );
+            }
+            
             TextView textTitle = (TextView) getActivity().findViewById(R.id.textTitle);
             textTitle.setText(mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_NAME)));
 
             TextView textDesc = (TextView) getActivity().findViewById(R.id.textDesc);
             textDesc.setText(mCursor.getString(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_DESC)));
 
-            SimpleDateFormat sdf = new SimpleDateFormat("h:mma EEE d MMM yy", Locale.UK);
+
             TextView textDateTime = (TextView) getActivity().findViewById(R.id.textDateTime);
             textDateTime.setText(sdf.format(mCursor.getLong(mCursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME)) * 1000));
 
             mCursor.close();
         }
     }
+
+
 
 
 }
