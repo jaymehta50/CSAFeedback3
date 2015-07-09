@@ -38,7 +38,7 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
 
     // Container Activity must implement this interface
     public interface OnEventSelectedListener {
-        public void onEventSelected(long position);
+        void onEventSelected(long position);
     }
 
     //Get and return a new instance of this fragment
@@ -176,10 +176,10 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
             else holder.ic_comment.setVisibility(View.GONE);
 
             Cursor c = getActivity().getContentResolver().query(
-                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),   // The content URI of the words table
-                    new String[] {BaseColumns._ID},                        // The columns to return for each row
-                    DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",                    // Selection criteria
-                    new String[] { cursor.getString(cursor.getColumnIndex(BaseColumns._ID)) },                     // Selection criteria
+                    Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),
+                    new String[] {BaseColumns._ID},
+                    DatabaseConstants.fd_feedback.COLUMN_NAME_EVENTID + "=?",
+                    new String[] { cursor.getString(cursor.getColumnIndex(BaseColumns._ID)) },
                     null);
 
             Integer count = c.getCount();
