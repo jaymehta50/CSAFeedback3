@@ -11,6 +11,7 @@ import android.media.Image;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -123,24 +124,56 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
 
     private class CustomCursorAdapter extends SimpleCursorAdapter {
 
-        public CustomCursorAdapter(Context context, Integer l, Cursor c, String[] from, int[] to, int flags) {
-            super(context, l, c, from, to, flags);
+        private Context mContext;
+        private Context appContext;
+        private int layout;
+        private Cursor cr;
+        private final LayoutInflater inflater;
+
+        private class ViewHolder  {
+            int nameIndex;
+            int timeIndex;
+            int respIndex;
+            TextView name;
+            TextView time;
+            ImageView ic_comment;
+            ImageView ic_done;
+        }
+
+        public CustomCursorAdapter(Context context, Integer layout, Cursor c, String[] from, int[] to, int flags) {
+            super(context,layout,c,from,to, flags);
+            this.layout=layout;
+            this.mContext = context;
+            this.inflater=LayoutInflater.from(context);
+            this.cr=c;
         }
 
         @Override
-        public void bindView(View view, Context context, Cursor cursor) {
+        public View newView(Context context, Cursor cursor, ViewGroup parent) {
+            View v = inflater.inflate(layout, null);
+            ViewHolder holder = new ViewHolder();
+            holder.name = (TextView) v.findViewById(R.id.list_name);
+            holder.time = (TextView) v.findViewById(R.id.list_datetime);
+            holder.ic_comment = (ImageView) v.findViewById(R.id.comment_image);
+            holder.ic_done = (ImageView) v.findViewById(R.id.done_image);
+            holder.nameIndex = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_NAME);
+            holder.timeIndex = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME);
+            holder.respIndex = cursor.getColumnIndexOrThrow(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT);
+            v.setTag(holder);
+            return v;
+        }
+
+        @Override
+        public void bindView(@NonNull View view, Context context, @NonNull Cursor cursor) {
             super.bindView(view, context, cursor);
-            TextView listName=(TextView) view.findViewById(R.id.list_name);
-            TextView listDateTime=(TextView) view.findViewById(R.id.list_datetime);
-            ImageView ic_done = (ImageView) view.findViewById(R.id.done_image);
-            ImageView ic_comment = (ImageView) view.findViewById(R.id.comment_image);
-            
-            String responseText = cursor.getString(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_TEXT));
-
+//            if (cursor.equals("null")) return;
+            ViewHolder holder = (ViewHolder) view.getTag();
+            holder.name.setText(cursor.getString(holder.nameIndex));
             SimpleDateFormat sdf = new SimpleDateFormat("h:mma EEE d MMM yy", Locale.UK);
-
-            listName.setText(cursor.getString(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_NAME)));
-            listDateTime.setText(sdf.format(cursor.getLong(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_STARTTIME)) * 1000));
+            holder.time.setText(sdf.format(cursor.getLong(holder.timeIndex) * 1000));
+            if(!cursor.getString(holder.respIndex).equals("null"))
+                holder.ic_comment.setVisibility(View.VISIBLE);
+            else holder.ic_comment.setVisibility(View.GONE);
 
             Cursor c = getActivity().getContentResolver().query(
                     Uri.withAppendedPath(DatabaseConstants.CONTENT_URI, "feedback"),   // The content URI of the words table
@@ -149,17 +182,11 @@ public class FeedbackActivityFragment extends ListFragment implements LoaderMana
                     new String[] { cursor.getString(cursor.getColumnIndex(BaseColumns._ID)) },                     // Selection criteria
                     null);
 
-            Log.d("Jay", cursor.getString(cursor.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_NAME)) + " " + c.getCount());
-            if (c.getCount() != 0) {
-                ic_done.setVisibility(View.VISIBLE);
-            }
-
-            if(!TextUtils.isEmpty(responseText) &&
-                    !responseText.equals("") &&
-                    !responseText.equals("null") &&
-                    !responseText.equals("Null")) {
-                ic_comment.setVisibility(View.VISIBLE);
-            }
+            Integer count = c.getCount();
+            if (count.equals(0))
+                holder.ic_done.setVisibility(View.GONE);
+            else holder.ic_done.setVisibility(View.VISIBLE);
+            c.close();
         }
 
     }
