@@ -180,7 +180,7 @@ public class SplashActivity extends Activity {
                 AccountManagerFuture<Bundle> amf = mAccountManager.getAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, null, new AccountLoginAct(), null, null);
 
                 //Set the sync adapter to run automatically
-                mResolver.setSyncAutomatically(mAccount, DatabaseConstants.PROVIDER_NAME, true);
+                ContentResolver.setSyncAutomatically(mAccount, DatabaseConstants.PROVIDER_NAME, true);
 
                 try {
                     Bundle authTokenBundle = amf.getResult();
@@ -246,7 +246,6 @@ public class SplashActivity extends Activity {
             public void run(AccountManagerFuture<Bundle> future) {
                 try {
                     Bundle bnd = future.getResult();
-                    showMessage("Account was created");
                     Log.d("Jay", "AddNewAccount Bundle is " + bnd);
 
                     //Get an updated list of accounts, which should include the recently created one
@@ -254,6 +253,7 @@ public class SplashActivity extends Activity {
 
                     //Double check - there should still only be one CSA account
                     if (arrayAccounts2.length==1) {
+                        showMessage("Getting your data from the Clinical School\nPlease wait...");
                         Crashlytics.getInstance().core.setUserIdentifier(arrayAccounts2[0].toString());
                         // Force syncadapter to run now so that user has all the information downloaded for first use
                         Bundle settingsBundle = new Bundle();
@@ -262,7 +262,7 @@ public class SplashActivity extends Activity {
                         settingsBundle.putBoolean(
                                 ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
 
-                        mResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
+                        ContentResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
                     }
                     else {
                         //Must have been an error (more/less than one CSA account) so show error page
@@ -287,7 +287,7 @@ public class SplashActivity extends Activity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getBaseContext(), msg, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getBaseContext(), msg, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -347,5 +347,5 @@ public class SplashActivity extends Activity {
     protected void onPause() {
         unregisterReceiver(syncBroadcastReceiver);
         super.onPause();
-    };
+    }
 }
