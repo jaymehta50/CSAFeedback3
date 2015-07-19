@@ -38,4 +38,7 @@
     <string name="ravenlogin">Login with Raven</string>
     <string name="moreoptionssoon">More options coming soon!</string>
     <string name="pleasechooseaccount">Please choose an account to login with:</string>
+    <string name="response">Response</string>
+    <string name="from">from</string>
+    <string name="score">Score:</string>
 </resources>
