@@ -80,12 +80,11 @@ public class SplashActivity extends Activity {
     private BroadcastReceiver syncBroadcastReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             //Switch to the main app page
+            unregisterReceiver(syncBroadcastReceiver);
             Intent i = new Intent(context, FeedbackActivity.class);
             startActivity(i);
         }
     };
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -160,10 +159,8 @@ public class SplashActivity extends Activity {
         //Prep account and resolver variables
         mResolver = getContentResolver();
         mAccountManager = AccountManager.get(this);
-        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
 
         PreferenceManager.setDefaultValues(this, R.xml.prefs, false);
-
         //Check for a valid account in an asynctask
         new checkLoginStatus().execute();
     }
@@ -260,6 +257,7 @@ public class SplashActivity extends Activity {
 
                     //Double check - there should still only be one CSA account
                     if (arrayAccounts2.length == 1) {
+                        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
                         showMessage("Getting your data from the Clinical School\nPlease wait...");
                         Crashlytics.getInstance().core.setUserIdentifier(arrayAccounts2[0].toString());
                         // Force syncadapter to run now so that user has all the information downloaded for first use
@@ -339,19 +337,5 @@ public class SplashActivity extends Activity {
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // register for sync
-        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
-        // do your resuming magic
-    }
-
-    @Override
-    protected void onPause() {
-        unregisterReceiver(syncBroadcastReceiver);
-        super.onPause();
     }
 }

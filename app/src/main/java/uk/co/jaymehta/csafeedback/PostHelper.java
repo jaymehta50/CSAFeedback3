@@ -30,7 +30,7 @@ public class PostHelper {
 
     public static String postRequest(String sUrl, ContentValues values) throws IOException {
         URL url = new URL(sUrl);
-        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setReadTimeout(10000);
         conn.setConnectTimeout(15000);
         conn.setDoInput(true);

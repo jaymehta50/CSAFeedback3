@@ -35,4 +35,7 @@
     <string name="pref_resp_notify">pref_resp_notify</string>
     <string name="pref_resp_notify_name">Tell me about responses</string>
     <string name="pref_resp_notify_desc">Send me a notification when the Clinical School responds to our feedback</string>
+    <string name="ravenlogin">Login with Raven</string>
+    <string name="moreoptionssoon">More options coming soon!</string>
+    <string name="pleasechooseaccount">Please choose an account to login with:</string>
 </resources>

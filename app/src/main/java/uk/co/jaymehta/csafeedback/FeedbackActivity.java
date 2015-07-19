@@ -118,6 +118,18 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onBackPressed() {
+        int count = getFragmentManager().getBackStackEntryCount();
+        Log.d("Jay", "Back stack count = "+count);
+        if(count > 1) {
+            super.onBackPressed();
+        }
+        else {
+            this.moveTaskToBack(true);
+        }
+    }
+
     public void onEventSelected(long id) {
         getFragmentManager().beginTransaction()
                 .replace(R.id.container, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
