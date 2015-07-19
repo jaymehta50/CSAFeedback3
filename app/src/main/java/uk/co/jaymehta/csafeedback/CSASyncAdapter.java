@@ -19,7 +19,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
+import android.provider.ContactsContract;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
@@ -184,7 +186,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
                 //Update datetime after which next renewal can take place
                 Long newDate = System.currentTimeMillis() + (AccountConstants.HOURS_BETWEEN_RENEW_TOKEN * 3600 * 1000);
-                Log.d("Jay", "SyncAdapter > " + new Date(newDate).toString());
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putLong(mContext.getString(R.string.time_since_renew), newDate);
                 editor.apply();
@@ -214,7 +215,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("Jay", "SyncAdapter > " + "Syncing items up");
             JSONArray data = cur2Json(c);
             c.close();
-            Log.d("Jay", "SyncAdapter > " + data.toString());
 
             Cursor d = mContentResolver.query(
                     Uri.parse(DatabaseConstants.URL + "feedback"),
@@ -230,8 +230,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             authtokenvalues.put("fd_data", data.toString());
             try {
                 String postresponse = PostHelper.postRequest(url_sync_up, authtokenvalues);
-                Log.d("Jay", postresponse);
-                Log.d("Jay", "SyncAdapter > " + "Set items as synced");
                 setItemsAsSynced(d);
                 d.close();
             }
@@ -274,7 +272,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Convert JSONArray into ContentValues, delete existing entries, and insert each newly downloaded one
-        Boolean first = true;
         for (int i = 0, size = obj.length(); i < size; i++)
         {
             ContentValues toinsert = new ContentValues();
@@ -303,25 +300,47 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                 }
             }
 
-            //If first time this has run, delete existing entries
-            if (first) {
-                Log.d("Jay", "SyncAdapter > " + "Delete existing entries");
-                mContentResolver.delete(
-                        Uri.parse(DatabaseConstants.URL + "events"),
-                        null,
-                        null
-                );
-            }
-            first = false;
-
             if((toinsert.getAsLong("endtime")*1000) >= System.currentTimeMillis()) {
                 //Schedule notifications for each event
-                Log.d("Jay", "Add Notification");
                 scheduleNotification(toinsert.getAsLong("endtime"), toinsert);
             }
 
+            Cursor olddata = mContentResolver.query(
+                    Uri.parse(DatabaseConstants.URL + "events"),
+                    new String [] {
+                            DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER,
+                            DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_NAME
+                    },
+                    BaseColumns._ID + "=?",
+                    new String[] {toinsert.getAsString(BaseColumns._ID)},
+                    null
+            );
+
+            if(olddata.moveToFirst()) {
+                mContentResolver.delete(
+                        Uri.parse(DatabaseConstants.URL + "events"),
+                        BaseColumns._ID + "=?",
+                        new String[]{toinsert.getAsString(BaseColumns._ID)}
+                );
+
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+                if(sharedPref.getBoolean(mContext.getString(R.string.pref_resp_notify), true)) {
+                    String resp_user = olddata.getString(olddata.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER));
+                    if (TextUtils.isEmpty(resp_user) || resp_user.equals("") || resp_user.equals("null") || resp_user.equals("Null")) {
+                        String new_resp_user = toinsert.getAsString(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER);
+                        if (!TextUtils.isEmpty(new_resp_user) && !new_resp_user.equals("") && !new_resp_user.equals("null") && !new_resp_user.equals("Null")) {
+                            NotificationLocal.doNotification(
+                                    mContext,
+                                    "New response to feedback",
+                                    toinsert.getAsString(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_NAME) + " responded to the feedback on the " + toinsert.getAsString(DatabaseConstants.fd_events.COLUMN_NAME_NAME),
+                                    toinsert.getAsInteger(BaseColumns._ID),
+                                    toinsert.getAsLong(BaseColumns._ID));
+                        }
+                    }
+                }
+            }
+
             //Insert current row
-            Log.d("Jay", "SyncAdapter > " + "Insert current row to events table");
             mContentResolver.insert(
                     Uri.parse(DatabaseConstants.URL + "events"),
                     toinsert
@@ -330,7 +349,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Convert JSONArray into ContentValues, delete existing entries, and insert each newly downloaded one
-        first = true;
+        Boolean first = true;
         for (int i = 0, size = fd_obj.length(); i < size; i++)
         {
             ContentValues toinsert = new ContentValues();

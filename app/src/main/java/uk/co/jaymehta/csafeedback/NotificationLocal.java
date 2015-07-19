@@ -25,22 +25,27 @@ public class NotificationLocal extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         if(sharedPref.getBoolean(context.getString(R.string.pref_event_notify), true)) {
-            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-
             ContentValues values = intent.getParcelableExtra(NOTIFICATION);
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-            builder.setContentTitle("Leave feedback now:");
-            builder.setContentText(values.getAsString("name"));
-            builder.setSmallIcon(R.mipmap.ic_csafeedback);
-
-            Intent resultIntent = new Intent(context, FeedbackActivity.class);
-            resultIntent.putExtra(NotificationLocal.EVENT_ID_TAG, values.getAsLong(BaseColumns._ID));
-
-            PendingIntent resultPendingIntent = PendingIntent.getActivity(context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            builder.setContentIntent(resultPendingIntent);
-
-            notificationManager.notify(values.getAsInteger(BaseColumns._ID), builder.build());
+            doNotification(context, "Leave feedback now:", values.getAsString("name"), values.getAsInteger(BaseColumns._ID), values.getAsLong(BaseColumns._ID));
         }
+    }
+
+    public static void doNotification(Context context, String title, String text, Integer id, Long eventid)
+    {
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+        builder.setContentTitle(title);
+        builder.setContentText(text);
+        builder.setSmallIcon(R.mipmap.ic_csafeedback);
+        builder.setAutoCancel(true);
+
+        Intent resultIntent = new Intent(context, FeedbackActivity.class);
+        resultIntent.putExtra(EVENT_ID_TAG, eventid);
+
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        builder.setContentIntent(resultPendingIntent);
+
+        notificationManager.notify(id, builder.build());
     }
 }

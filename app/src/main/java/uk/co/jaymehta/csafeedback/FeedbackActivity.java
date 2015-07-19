@@ -2,6 +2,7 @@ package uk.co.jaymehta.csafeedback;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.BroadcastReceiver;
@@ -10,26 +11,22 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.provider.BaseColumns;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Toast;
-
-import com.crashlytics.android.Crashlytics;
 
 
 public class FeedbackActivity extends Activity implements FeedbackActivityFragment.OnEventSelectedListener {
     private static final String FRAGMENT_LIST = "listFragment";
     private static final String FRAGMENT_PAGE = "pageFragment";
     private String mComment;
+    private boolean dualpane;
 
     private static final IntentFilter syncIntentFilter = new IntentFilter(DatabaseConstants.SYNC_FINISH);
 
@@ -37,8 +34,6 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
         @Override public void onReceive(Context context, Intent intent) {
             //Switch to the main app page
             Log.d("Jay","done frag reload");
-            Fragment g = getFragmentManager().findFragmentByTag(FRAGMENT_LIST);
-            Fragment f = getFragmentManager().findFragmentById(R.id.container);
             getFragmentManager().beginTransaction()
                     .replace(R.id.container, FeedbackActivityFragment.newInstance(), FRAGMENT_LIST)
                     .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
@@ -51,13 +46,17 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feedback);
+        dualpane = getResources().getBoolean(R.bool.dual_pane);
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
-                    .replace(R.id.container, FeedbackActivityFragment.newInstance(), FRAGMENT_LIST)
+                    .add(R.id.container, FeedbackActivityFragment.newInstance(), FRAGMENT_LIST)
                     .addToBackStack(null)
                     .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                     .commit();
         }
+
+        ActionBar actionBar = getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
 
         PreferenceManager.setDefaultValues(this, R.xml.prefs, false);
 
@@ -108,11 +107,20 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
             }
         }
         if (id == R.id.action_settings) {
-            getFragmentManager().beginTransaction()
-                    .replace(R.id.container, new SettingsFragment(), FRAGMENT_PAGE)
-                    .addToBackStack(null)
-                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-                    .commit();
+            if(dualpane) {
+                getFragmentManager().beginTransaction()
+                        .replace(R.id.container2, new SettingsFragment(), FRAGMENT_PAGE)
+                        .addToBackStack(null)
+                        .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                        .commit();
+            }
+            else {
+                getFragmentManager().beginTransaction()
+                        .replace(R.id.container, new SettingsFragment(), FRAGMENT_PAGE)
+                        .addToBackStack(null)
+                        .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                        .commit();
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -130,15 +138,27 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
         }
     }
 
-    public void onEventSelected(long id) {
-        getFragmentManager().beginTransaction()
-                .replace(R.id.container, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
-                .addToBackStack(null)
-                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-                .commit();
+    @Override
+    public Intent getParentActivityIntent() {
+        onBackPressed();
+        return null;
+    }
 
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        Log.d("Jay", "Setting = " + sharedPref.getBoolean(this.getString(R.string.pref_event_notify), true));
+    public void onEventSelected(long id) {
+        if(dualpane) {
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.container2, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
+                    .addToBackStack(null)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                    .commit();
+        }
+        else {
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.container, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
+                    .addToBackStack(null)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                    .commit();
+        }
     }
 
     public void saveDataButtonClicked(Boolean commentAdd, String comment) {
