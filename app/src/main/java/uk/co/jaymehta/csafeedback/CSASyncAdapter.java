@@ -4,6 +4,9 @@ import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
+import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -15,8 +18,11 @@ import android.content.SyncResult;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.provider.BaseColumns;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -28,6 +34,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Date;
+
+import io.fabric.sdk.android.Fabric;
 
 /**
  * Handle the transfer of data between a server and an
@@ -51,6 +59,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         mContext = context;
         mContentResolver = mContext.getContentResolver();
         mAccountManager = AccountManager.get(mContext);
+        Fabric.with(mContext, new Crashlytics());
     }
 
     /**
@@ -109,7 +118,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Is this authtoken for a valid user?
-        String url_checkvalid = "http://jkm50.user.srcf.net/feedback/post/index.php";
+        String url_checkvalid = AccountConstants.BASE_URL + "post/index.php";
         ContentValues authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
         String result;
@@ -157,7 +166,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             //Has it been more than the number of hours specified in AccountConstants since the last authtoken renewal?
             if (tokenRenewed <= System.currentTimeMillis()) {
                 //Yes - get and store new authtoken and invalidate prior one
-                String url_renew_token = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token";
+                String url_renew_token = AccountConstants.BASE_URL + "post/index.php/welcome/renew_token";
                 Log.d("Jay", "SyncAdapter > " + "Renewing token");
                 try {
                     result = PostHelper.postRequest(url_renew_token, authtokenvalues);
@@ -215,7 +224,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                     null
             );
 
-            String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_up";
+            String url_sync_up = AccountConstants.BASE_URL + "post/index.php/welcome/sync_up";
             authtokenvalues = new ContentValues();
             authtokenvalues.put("authtoken", mAuthToken);
             authtokenvalues.put("fd_data", data.toString());
@@ -237,7 +246,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         //Sync down
         //Get data to store on device
         Log.d("Jay", "SyncAdapter > " + "Sync down");
-        String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_down";
+        String url_sync_up = AccountConstants.BASE_URL + "post/index.php/welcome/sync_down";
         authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
         try {
@@ -304,6 +313,12 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                 );
             }
             first = false;
+
+            if((toinsert.getAsLong("endtime")*1000) >= System.currentTimeMillis()) {
+                //Schedule notifications for each event
+                Log.d("Jay", "Add Notification");
+                scheduleNotification(toinsert.getAsLong("endtime"), toinsert);
+            }
 
             //Insert current row
             Log.d("Jay", "SyncAdapter > " + "Insert current row to events table");
@@ -406,5 +421,16 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             );
             cursor.moveToNext();
         }
+    }
+
+    private void scheduleNotification(long endtime, ContentValues values) {
+        Intent notificationIntent = new Intent(mContext, NotificationLocal.class);
+        notificationIntent.putExtra(NotificationLocal.NOTIFICATION, values);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.cancel(pendingIntent);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, (endtime * 1000), pendingIntent);
+        Log.d("Jay", "Notification set for " + endtime);
     }
 }

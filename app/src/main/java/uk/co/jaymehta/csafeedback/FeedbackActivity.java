@@ -10,8 +10,10 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
@@ -56,6 +58,13 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
                     .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                     .commit();
         }
+
+        PreferenceManager.setDefaultValues(this, R.xml.prefs, false);
+
+        if(getIntent().hasExtra(NotificationLocal.EVENT_ID_TAG)) {
+            Long eventid = getIntent().getLongExtra(NotificationLocal.EVENT_ID_TAG, 1);
+            onEventSelected(eventid);
+        }
     }
 
     @Override
@@ -99,7 +108,11 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
             }
         }
         if (id == R.id.action_settings) {
-            return true;
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.container, new SettingsFragment(), FRAGMENT_PAGE)
+                    .addToBackStack(null)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                    .commit();
         }
 
         return super.onOptionsItemSelected(item);
@@ -111,6 +124,9 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
                 .addToBackStack(null)
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                 .commit();
+
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        Log.d("Jay", "Setting = " + sharedPref.getBoolean(this.getString(R.string.pref_event_notify), true));
     }
 
     public void saveDataButtonClicked(Boolean commentAdd, String comment) {

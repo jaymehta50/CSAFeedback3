@@ -81,21 +81,32 @@ public class AccountLoginAct extends AccountAuthenticatorActivity {
         //Launch Raven login in webview
         webview = new WebView(this);
         webview.clearCache(true);
-        setContentView(webview);
+        try {
+            setContentView(webview);
 
-        webview.setWebViewClient(new MyWebViewClient());
+            webview.setWebViewClient(new MyWebViewClient());
 
-        webview.getSettings().setJavaScriptEnabled(true);
-        webview.addJavascriptInterface(new JSInterfaceClass(this), "Android");
+            webview.getSettings().setJavaScriptEnabled(true);
+            webview.addJavascriptInterface(new JSInterfaceClass(), "Android");
 
-        webview.loadUrl("http://jkm50.user.srcf.net/feedback/login/");
+            webview.loadUrl(AccountConstants.BASE_URL + "login/");
+        } catch (Exception e) {
+            e.printStackTrace();
+            setContentView(R.layout.activity_account_login);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getBaseContext(), "Please make sure you are connected to the internet", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
     }
 
     private class MyWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             Log.d("Jay", Uri.parse(url).getHost());
-            if (Uri.parse(url).getHost().equals("jkm50.user.srcf.net") || Uri.parse(url).getHost().equals("raven.cam.ac.uk")) {
+            if (Uri.parse(url).getHost().equals(AccountConstants.BASE_HOST) || Uri.parse(url).getHost().equals(AccountConstants.BASE_RAVEN)) {
                 // This is my web site, so do not override; let my WebView load the page
                 return false;
             }
@@ -104,21 +115,25 @@ public class AccountLoginAct extends AccountAuthenticatorActivity {
             startActivity(intent);
             return true;
         }
+
+        @Override
+        public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+            Log.d("Jay", "WebView error code: "+errorCode);
+            Log.d("Jay", "WebView error desc.: "+description);
+            setContentView(R.layout.activity_account_login);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getBaseContext(), "Please make sure you are connected to the internet", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
     }
 
     private class JSInterfaceClass {
-        Context mContext;
 
         /** Instantiate the interface and set the context */
-        JSInterfaceClass(Context c) {
-            mContext = c;
-        }
-
-        /** Show a toast from the web page */
-        @JavascriptInterface
-        public void showToast(String toast) {
-            Toast.makeText(mContext, toast, Toast.LENGTH_SHORT).show();
-        }
+        JSInterfaceClass() {}
 
         @JavascriptInterface
         public void returnAuthToken(String token, String username) {
@@ -134,6 +149,7 @@ public class AccountLoginAct extends AccountAuthenticatorActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                webview.loadUrl("about:blank");
                 webview.clearCache(true);
                 webview.destroy();
             }

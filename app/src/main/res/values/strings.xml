@@ -27,4 +27,12 @@
     <string name="score_out_of">out of 10</string>
     <string name="comment_box">Leave a comment?</string>
     <string name="save_text_button">Save</string>
+
+    <string name="pref_event_notify">pref_event_notify</string>
+    <string name="pref_event_notify_name">Remind me to leave feedback</string>
+    <string name="pref_event_notify_desc">Send me a notification when I can leave feedback for a session</string>
+
+    <string name="pref_resp_notify">pref_resp_notify</string>
+    <string name="pref_resp_notify_name">Tell me about responses</string>
+    <string name="pref_resp_notify_desc">Send me a notification when the Clinical School responds to our feedback</string>
 </resources>

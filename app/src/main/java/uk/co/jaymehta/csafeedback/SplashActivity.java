@@ -18,17 +18,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 
 /**
@@ -157,6 +162,8 @@ public class SplashActivity extends Activity {
         mAccountManager = AccountManager.get(this);
         registerReceiver(syncBroadcastReceiver, syncIntentFilter);
 
+        PreferenceManager.setDefaultValues(this, R.xml.prefs, false);
+
         //Check for a valid account in an asynctask
         new checkLoginStatus().execute();
     }
@@ -252,7 +259,7 @@ public class SplashActivity extends Activity {
                     Account[] arrayAccounts2 = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
 
                     //Double check - there should still only be one CSA account
-                    if (arrayAccounts2.length==1) {
+                    if (arrayAccounts2.length == 1) {
                         showMessage("Getting your data from the Clinical School\nPlease wait...");
                         Crashlytics.getInstance().core.setUserIdentifier(arrayAccounts2[0].toString());
                         // Force syncadapter to run now so that user has all the information downloaded for first use
@@ -263,8 +270,7 @@ public class SplashActivity extends Activity {
                                 ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
 
                         ContentResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
-                    }
-                    else {
+                    } else {
                         //Must have been an error (more/less than one CSA account) so show error page
                         Intent intent = new Intent(getApplicationContext(), ErrorActivity.class);
                         startActivity(intent);

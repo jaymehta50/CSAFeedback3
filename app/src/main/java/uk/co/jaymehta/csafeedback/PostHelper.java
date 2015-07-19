@@ -19,6 +19,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import javax.net.ssl.HttpsURLConnection;
+
 /**
  * Created by Jay on 04/07/2015.
  */
@@ -28,7 +30,7 @@ public class PostHelper {
 
     public static String postRequest(String sUrl, ContentValues values) throws IOException {
         URL url = new URL(sUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
         conn.setReadTimeout(10000);
         conn.setConnectTimeout(15000);
         conn.setDoInput(true);
