@@ -91,6 +91,9 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             ContentProviderClient provider,
             SyncResult syncResult) {
 
+        SharedPreferences prefs = mContext.getSharedPreferences(mContext.getString(R.string.prefs_name), Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
+
         //Get the authtoken
         String mAuthToken;
         try {
@@ -133,7 +136,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
-        Log.d("Jay", "SyncAdapter > " + result);
 
         //Result shows that this user should not have access to this system... How odd... Remove their account, maybe a fresh login will help
         if (result.equals("invalid_user")) {
@@ -159,7 +161,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         //Anything after this line - we assume we have received a valid user response from server
 
         //Has the syncadapter been told to renew the auth token?
-        SharedPreferences prefs = mContext.getSharedPreferences(mContext.getString(R.string.prefs_name), Context.MODE_PRIVATE);
         if(prefs.getBoolean(mContext.getString(R.string.run_renewal_bool), false)) {
             //If yes - renew auth token
             Long tokenRenewed = prefs.getLong(mContext.getString(R.string.time_since_renew), 0);
@@ -261,7 +262,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         JSONArray fd_obj;
         try {
             JSONArray result_json_array = new JSONArray(result);
-            Log.d("Jay", "SyncAdapter > " + result_json_array.toString(1));
             obj = result_json_array.getJSONArray(0);
             fd_obj = result_json_array.getJSONArray(1);
         } catch (Throwable t) {
@@ -323,7 +323,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                         new String[]{toinsert.getAsString(BaseColumns._ID)}
                 );
 
-                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
                 if(sharedPref.getBoolean(mContext.getString(R.string.pref_resp_notify), true)) {
                     String resp_user = olddata.getString(olddata.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER));
                     if (TextUtils.isEmpty(resp_user) || resp_user.equals("") || resp_user.equals("null") || resp_user.equals("Null")) {
@@ -390,7 +389,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             first = false;
 
             //Insert current row
-            Log.d("Jay", "SyncAdapter > " + "Insert current row to feedback table");
             mContentResolver.insert(
                     Uri.parse(DatabaseConstants.URL + "feedback"),
                     toinsert

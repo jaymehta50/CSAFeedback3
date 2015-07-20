@@ -41,4 +41,20 @@
     <string name="response">Response</string>
     <string name="from">from</string>
     <string name="score">Score:</string>
+
+    <string name="lastsync">time_of_last_sync</string>
+    <string name="syncinterval">interval_between_sync</string>
+    <string name="pref_sync_interval">pref_sync_interval</string>
+    <string name="pref_sync_interval_name">Hours between synchronisations</string>
+    <string name="pref_sync_interval_desc">How often to check for updates from the Clinical School</string>
+    <string name="pref_sync_interval_dialog">Number of hours:</string>
+
+    <string-array name="pref_sync_interval_vals">
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+        <item>24</item>
+    </string-array>
 </resources>

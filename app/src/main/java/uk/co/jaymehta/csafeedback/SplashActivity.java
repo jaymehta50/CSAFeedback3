@@ -183,8 +183,8 @@ public class SplashActivity extends Activity {
                 Crashlytics.getInstance().core.setUserIdentifier(mAccount.toString());
                 AccountManagerFuture<Bundle> amf = mAccountManager.getAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, null, new AccountLoginAct(), null, null);
 
-                //Set the sync adapter to run automatically
-                ContentResolver.setSyncAutomatically(mAccount, DatabaseConstants.PROVIDER_NAME, true);
+                //Set the sync adapter to run periodically
+                ContentResolver.addPeriodicSync(mAccount, DatabaseConstants.PROVIDER_NAME, Bundle.EMPTY, 3600);
 
                 try {
                     Bundle authTokenBundle = amf.getResult();
