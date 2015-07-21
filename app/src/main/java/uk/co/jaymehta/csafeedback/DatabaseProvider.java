@@ -129,7 +129,7 @@ public class DatabaseProvider extends ContentProvider {
 
         long rowID = db.insert(table, "", values);
 
-        if (rowID > 0)
+        if (rowID >= 0)
         {
             Uri _uri = ContentUris.withAppendedId(DatabaseConstants.CONTENT_URI, rowID);
             getContext().getContentResolver().notifyChange(_uri, null);

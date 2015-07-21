@@ -338,6 +338,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                     }
                 }
             }
+            olddata.close();
 
             //Insert current row
             mContentResolver.insert(
