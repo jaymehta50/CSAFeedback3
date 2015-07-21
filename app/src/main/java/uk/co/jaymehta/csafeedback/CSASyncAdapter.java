@@ -262,6 +262,11 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         JSONArray fd_obj;
         try {
             JSONArray result_json_array = new JSONArray(result);
+            //Log.d("Jay", "JSONArray length = "+String.valueOf(result_json_array.length()));
+            if(result_json_array.length() != 2) {
+                mContext.sendBroadcast(new Intent(DatabaseConstants.SYNC_FINISH));
+                return;
+            }
             obj = result_json_array.getJSONArray(0);
             fd_obj = result_json_array.getJSONArray(1);
         } catch (Throwable t) {
