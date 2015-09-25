@@ -18,17 +18,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 
 /**
@@ -75,12 +80,11 @@ public class SplashActivity extends Activity {
     private BroadcastReceiver syncBroadcastReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             //Switch to the main app page
+            unregisterReceiver(syncBroadcastReceiver);
             Intent i = new Intent(context, FeedbackActivity.class);
             startActivity(i);
         }
     };
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,8 +159,8 @@ public class SplashActivity extends Activity {
         //Prep account and resolver variables
         mResolver = getContentResolver();
         mAccountManager = AccountManager.get(this);
-        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
 
+        PreferenceManager.setDefaultValues(this, R.xml.prefs, false);
         //Check for a valid account in an asynctask
         new checkLoginStatus().execute();
     }
@@ -179,8 +183,8 @@ public class SplashActivity extends Activity {
                 Crashlytics.getInstance().core.setUserIdentifier(mAccount.toString());
                 AccountManagerFuture<Bundle> amf = mAccountManager.getAuthToken(mAccount, AccountConstants.AUTH_TOKEN_TYPE, null, new AccountLoginAct(), null, null);
 
-                //Set the sync adapter to run automatically
-                mResolver.setSyncAutomatically(mAccount, DatabaseConstants.PROVIDER_NAME, true);
+                //Set the sync adapter to run periodically
+                ContentResolver.addPeriodicSync(mAccount, DatabaseConstants.PROVIDER_NAME, Bundle.EMPTY, 3600);
 
                 try {
                     Bundle authTokenBundle = amf.getResult();
@@ -246,14 +250,15 @@ public class SplashActivity extends Activity {
             public void run(AccountManagerFuture<Bundle> future) {
                 try {
                     Bundle bnd = future.getResult();
-                    showMessage("Account was created");
                     Log.d("Jay", "AddNewAccount Bundle is " + bnd);
 
                     //Get an updated list of accounts, which should include the recently created one
                     Account[] arrayAccounts2 = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
 
                     //Double check - there should still only be one CSA account
-                    if (arrayAccounts2.length==1) {
+                    if (arrayAccounts2.length == 1) {
+                        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
+                        showMessage("Getting your data from the Clinical School\nPlease wait...");
                         Crashlytics.getInstance().core.setUserIdentifier(arrayAccounts2[0].toString());
                         // Force syncadapter to run now so that user has all the information downloaded for first use
                         Bundle settingsBundle = new Bundle();
@@ -262,9 +267,8 @@ public class SplashActivity extends Activity {
                         settingsBundle.putBoolean(
                                 ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
 
-                        mResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
-                    }
-                    else {
+                        ContentResolver.requestSync(arrayAccounts2[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
+                    } else {
                         //Must have been an error (more/less than one CSA account) so show error page
                         Intent intent = new Intent(getApplicationContext(), ErrorActivity.class);
                         startActivity(intent);
@@ -287,7 +291,7 @@ public class SplashActivity extends Activity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getBaseContext(), msg, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getBaseContext(), msg, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -334,18 +338,4 @@ public class SplashActivity extends Activity {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
     }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // register for sync
-        registerReceiver(syncBroadcastReceiver, syncIntentFilter);
-        // do your resuming magic
-    }
-
-    @Override
-    protected void onPause() {
-        unregisterReceiver(syncBroadcastReceiver);
-        super.onPause();
-    };
 }

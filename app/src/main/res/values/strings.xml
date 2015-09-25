@@ -27,4 +27,34 @@
     <string name="score_out_of">out of 10</string>
     <string name="comment_box">Leave a comment?</string>
     <string name="save_text_button">Save</string>
+
+    <string name="pref_event_notify">pref_event_notify</string>
+    <string name="pref_event_notify_name">Remind me to leave feedback</string>
+    <string name="pref_event_notify_desc">Send me a notification when I can leave feedback for a session</string>
+
+    <string name="pref_resp_notify">pref_resp_notify</string>
+    <string name="pref_resp_notify_name">Tell me about responses</string>
+    <string name="pref_resp_notify_desc">Send me a notification when the Clinical School responds to our feedback</string>
+    <string name="ravenlogin">Login with Raven</string>
+    <string name="moreoptionssoon">More options coming soon!</string>
+    <string name="pleasechooseaccount">Please choose an account to login with:</string>
+    <string name="response">Response</string>
+    <string name="from">from</string>
+    <string name="score">Score:</string>
+
+    <string name="lastsync">time_of_last_sync</string>
+    <string name="syncinterval">interval_between_sync</string>
+    <string name="pref_sync_interval">pref_sync_interval</string>
+    <string name="pref_sync_interval_name">Hours between synchronisations</string>
+    <string name="pref_sync_interval_desc">How often to check for updates from the Clinical School</string>
+    <string name="pref_sync_interval_dialog">Number of hours:</string>
+
+    <string-array name="pref_sync_interval_vals">
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+        <item>24</item>
+    </string-array>
 </resources>

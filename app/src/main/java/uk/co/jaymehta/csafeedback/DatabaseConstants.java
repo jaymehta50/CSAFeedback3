@@ -38,14 +38,14 @@ public final class DatabaseConstants {
                 "CREATE TABLE " + TABLE_NAME + " (" +
                         _ID + " INTEGER PRIMARY KEY," +
                         COLUMN_NAME_NAME + TEXT_TYPE + NOT_NULL + COMMA_SEP +
-                        COLUMN_NAME_DESC + TEXT_TYPE + NOT_NULL + COMMA_SEP +
+                        COLUMN_NAME_DESC + TEXT_TYPE + NULL + COMMA_SEP +
                         COLUMN_NAME_STARTTIME + INTEGER_TYPE + NOT_NULL + COMMA_SEP +
                         COLUMN_NAME_ENDTIME + INTEGER_TYPE + NOT_NULL + COMMA_SEP +
-                        COLUMN_NAME_RESP + TEXT_TYPE + NOT_NULL + COMMA_SEP +
+                        COLUMN_NAME_RESP + TEXT_TYPE + NULL + COMMA_SEP +
                         COLUMN_NAME_RESPONSE_USER + TEXT_TYPE + NULL + COMMA_SEP +
                         COLUMN_NAME_RESPONSE_NAME + TEXT_TYPE + NULL + COMMA_SEP +
                         COLUMN_NAME_RESPONSE_TEXT + TEXT_TYPE + NULL + COMMA_SEP +
-                        COLUMN_NAME_RESPONSE_TIME + TEXT_TYPE + NULL +
+                        COLUMN_NAME_RESPONSE_TIME + INTEGER_TYPE + NULL +
                 ")";
 
         public static final String SQL_DELETE_ENTRIES =

@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Please choose an account to login with:"
+        android:text="@string/pleasechooseaccount"
         android:id="@+id/textView2"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
@@ -19,7 +19,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="More options coming soon!"
+        android:text="@string/moreoptionssoon"
         android:id="@+id/textView3"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true" />
@@ -27,7 +27,7 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="University of Cambridge\nRaven"
+        android:text="@string/ravenlogin"
         android:id="@+id/button"
         android:layout_centerVertical="true"
         android:layout_alignParentLeft="true"

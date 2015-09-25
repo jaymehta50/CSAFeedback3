@@ -2,6 +2,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="uk.co.jaymehta.csafeedback.FeedbackActivity">
+    <item android:id="@+id/sync_now" android:title="Synchronise Now"
+        android:orderInCategory="50" app:showAsAction="never" />
     <item android:id="@+id/action_settings" android:title="@string/action_settings"
         android:orderInCategory="100" app:showAsAction="never" />
 </menu>

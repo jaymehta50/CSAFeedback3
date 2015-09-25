@@ -82,12 +82,10 @@ public class DatabaseProvider extends ContentProvider {
                 null,                                     // don't filter by row groups
                 sortOrder                                 // The sort order
         );
-        Log.d("Jay", "Provider query run");
         return c;
     }
 
     public String getType(Uri uri) {
-        Log.d("Jay", "Provider getType started");
         String toreturn;
         switch (sUriMatcher.match(uri)) {
             // If the incoming URI was for all of problem_names
@@ -106,7 +104,6 @@ public class DatabaseProvider extends ContentProvider {
             default:
                 throw new IllegalArgumentException("Not a valid URI");
         }
-        Log.d("Jay", "Provider getType about to return");
         return toreturn;
     }
 
@@ -132,7 +129,7 @@ public class DatabaseProvider extends ContentProvider {
 
         long rowID = db.insert(table, "", values);
 
-        if (rowID > 0)
+        if (rowID >= 0)
         {
             Uri _uri = ContentUris.withAppendedId(DatabaseConstants.CONTENT_URI, rowID);
             getContext().getContentResolver().notifyChange(_uri, null);

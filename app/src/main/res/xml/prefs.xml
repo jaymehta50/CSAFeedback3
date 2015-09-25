@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory android:title="CSA Preferences" />
-    <CheckBoxPreference android:title="Use debug server"
-        android:key="isDebug"
-        android:summary="Connecting to a debug server instead of prod server"/>
-    <SwitchPreference android:title="Debug Logs" android:key="logsVerbose" android:summary="Show debug logs on LogCat"/>
+    <PreferenceCategory android:title="Notifications" />
+    <CheckBoxPreference
+        android:key="@string/pref_event_notify"
+        android:title="@string/pref_event_notify_name"
+        android:summary="@string/pref_event_notify_desc"
+        android:defaultValue="true" />
+    <CheckBoxPreference
+        android:key="@string/pref_resp_notify"
+        android:title="@string/pref_resp_notify_name"
+        android:summary="@string/pref_resp_notify_desc"
+        android:defaultValue="true" />
+    <!--<PreferenceCategory android:title="Synchronisation" />-->
+    <!--<ListPreference-->
+        <!--android:key="pref_sync_interval"-->
+        <!--android:title="@string/pref_sync_interval_name"-->
+        <!--android:summary="@string/pref_sync_interval_desc"-->
+        <!--android:dialogTitle="@string/pref_sync_interval_name"-->
+        <!--android:entries="@array/pref_sync_interval_vals"-->
+        <!--android:entryValues="@array/pref_sync_interval_vals"-->
+        <!--android:defaultValue="1" />-->
 </PreferenceScreen>

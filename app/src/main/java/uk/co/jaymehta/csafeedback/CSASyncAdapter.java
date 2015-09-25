@@ -4,6 +4,9 @@ import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
+import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -15,8 +18,13 @@ import android.content.SyncResult;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
+import android.provider.ContactsContract;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -28,6 +36,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Date;
+
+import io.fabric.sdk.android.Fabric;
 
 /**
  * Handle the transfer of data between a server and an
@@ -51,6 +61,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         mContext = context;
         mContentResolver = mContext.getContentResolver();
         mAccountManager = AccountManager.get(mContext);
+        Fabric.with(mContext, new Crashlytics());
     }
 
     /**
@@ -79,6 +90,9 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             String authority,
             ContentProviderClient provider,
             SyncResult syncResult) {
+
+        SharedPreferences prefs = mContext.getSharedPreferences(mContext.getString(R.string.prefs_name), Context.MODE_PRIVATE);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(mContext);
 
         //Get the authtoken
         String mAuthToken;
@@ -109,7 +123,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Is this authtoken for a valid user?
-        String url_checkvalid = "http://jkm50.user.srcf.net/feedback/post/index.php";
+        String url_checkvalid = AccountConstants.BASE_URL + "post/index.php";
         ContentValues authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
         String result;
@@ -122,7 +136,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
-        Log.d("Jay", "SyncAdapter > " + result);
 
         //Result shows that this user should not have access to this system... How odd... Remove their account, maybe a fresh login will help
         if (result.equals("invalid_user")) {
@@ -148,7 +161,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         //Anything after this line - we assume we have received a valid user response from server
 
         //Has the syncadapter been told to renew the auth token?
-        SharedPreferences prefs = mContext.getSharedPreferences(mContext.getString(R.string.prefs_name), Context.MODE_PRIVATE);
         if(prefs.getBoolean(mContext.getString(R.string.run_renewal_bool), false)) {
             //If yes - renew auth token
             Long tokenRenewed = prefs.getLong(mContext.getString(R.string.time_since_renew), 0);
@@ -157,7 +169,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             //Has it been more than the number of hours specified in AccountConstants since the last authtoken renewal?
             if (tokenRenewed <= System.currentTimeMillis()) {
                 //Yes - get and store new authtoken and invalidate prior one
-                String url_renew_token = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/renew_token";
+                String url_renew_token = AccountConstants.BASE_URL + "post/index.php/welcome/renew_token";
                 Log.d("Jay", "SyncAdapter > " + "Renewing token");
                 try {
                     result = PostHelper.postRequest(url_renew_token, authtokenvalues);
@@ -175,7 +187,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
                 //Update datetime after which next renewal can take place
                 Long newDate = System.currentTimeMillis() + (AccountConstants.HOURS_BETWEEN_RENEW_TOKEN * 3600 * 1000);
-                Log.d("Jay", "SyncAdapter > " + new Date(newDate).toString());
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putLong(mContext.getString(R.string.time_since_renew), newDate);
                 editor.apply();
@@ -205,7 +216,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("Jay", "SyncAdapter > " + "Syncing items up");
             JSONArray data = cur2Json(c);
             c.close();
-            Log.d("Jay", "SyncAdapter > " + data.toString());
 
             Cursor d = mContentResolver.query(
                     Uri.parse(DatabaseConstants.URL + "feedback"),
@@ -215,14 +225,12 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                     null
             );
 
-            String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_up";
+            String url_sync_up = AccountConstants.BASE_URL + "post/index.php/welcome/sync_up";
             authtokenvalues = new ContentValues();
             authtokenvalues.put("authtoken", mAuthToken);
             authtokenvalues.put("fd_data", data.toString());
             try {
                 String postresponse = PostHelper.postRequest(url_sync_up, authtokenvalues);
-                Log.d("Jay", postresponse);
-                Log.d("Jay", "SyncAdapter > " + "Set items as synced");
                 setItemsAsSynced(d);
                 d.close();
             }
@@ -237,7 +245,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         //Sync down
         //Get data to store on device
         Log.d("Jay", "SyncAdapter > " + "Sync down");
-        String url_sync_up = "http://jkm50.user.srcf.net/feedback/post/index.php/welcome/sync_down";
+        String url_sync_up = AccountConstants.BASE_URL + "post/index.php/welcome/sync_down";
         authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
         try {
@@ -254,7 +262,11 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         JSONArray fd_obj;
         try {
             JSONArray result_json_array = new JSONArray(result);
-            Log.d("Jay", "SyncAdapter > " + result_json_array.toString(1));
+            //Log.d("Jay", "JSONArray length = "+String.valueOf(result_json_array.length()));
+            if(result_json_array.length() != 2) {
+                mContext.sendBroadcast(new Intent(DatabaseConstants.SYNC_FINISH));
+                return;
+            }
             obj = result_json_array.getJSONArray(0);
             fd_obj = result_json_array.getJSONArray(1);
         } catch (Throwable t) {
@@ -265,7 +277,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Convert JSONArray into ContentValues, delete existing entries, and insert each newly downloaded one
-        Boolean first = true;
         for (int i = 0, size = obj.length(); i < size; i++)
         {
             ContentValues toinsert = new ContentValues();
@@ -294,19 +305,47 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                 }
             }
 
-            //If first time this has run, delete existing entries
-            if (first) {
-                Log.d("Jay", "SyncAdapter > " + "Delete existing entries");
+            if((toinsert.getAsLong("endtime")*1000) >= System.currentTimeMillis()) {
+                //Schedule notifications for each event
+                scheduleNotification(toinsert.getAsLong("endtime"), toinsert);
+            }
+
+            Cursor olddata = mContentResolver.query(
+                    Uri.parse(DatabaseConstants.URL + "events"),
+                    new String [] {
+                            DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER,
+                            DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_NAME
+                    },
+                    BaseColumns._ID + "=?",
+                    new String[] {toinsert.getAsString(BaseColumns._ID)},
+                    null
+            );
+
+            if(olddata.moveToFirst()) {
                 mContentResolver.delete(
                         Uri.parse(DatabaseConstants.URL + "events"),
-                        null,
-                        null
+                        BaseColumns._ID + "=?",
+                        new String[]{toinsert.getAsString(BaseColumns._ID)}
                 );
+
+                if(sharedPref.getBoolean(mContext.getString(R.string.pref_resp_notify), true)) {
+                    String resp_user = olddata.getString(olddata.getColumnIndex(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER));
+                    if (TextUtils.isEmpty(resp_user) || resp_user.equals("") || resp_user.equals("null") || resp_user.equals("Null")) {
+                        String new_resp_user = toinsert.getAsString(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_USER);
+                        if (!TextUtils.isEmpty(new_resp_user) && !new_resp_user.equals("") && !new_resp_user.equals("null") && !new_resp_user.equals("Null")) {
+                            NotificationLocal.doNotification(
+                                    mContext,
+                                    "New response to feedback",
+                                    toinsert.getAsString(DatabaseConstants.fd_events.COLUMN_NAME_RESPONSE_NAME) + " responded to the feedback on the " + toinsert.getAsString(DatabaseConstants.fd_events.COLUMN_NAME_NAME),
+                                    toinsert.getAsInteger(BaseColumns._ID),
+                                    toinsert.getAsLong(BaseColumns._ID));
+                        }
+                    }
+                }
             }
-            first = false;
+            olddata.close();
 
             //Insert current row
-            Log.d("Jay", "SyncAdapter > " + "Insert current row to events table");
             mContentResolver.insert(
                     Uri.parse(DatabaseConstants.URL + "events"),
                     toinsert
@@ -315,7 +354,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Convert JSONArray into ContentValues, delete existing entries, and insert each newly downloaded one
-        first = true;
+        Boolean first = true;
         for (int i = 0, size = fd_obj.length(); i < size; i++)
         {
             ContentValues toinsert = new ContentValues();
@@ -356,7 +395,6 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             first = false;
 
             //Insert current row
-            Log.d("Jay", "SyncAdapter > " + "Insert current row to feedback table");
             mContentResolver.insert(
                     Uri.parse(DatabaseConstants.URL + "feedback"),
                     toinsert
@@ -406,5 +444,16 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             );
             cursor.moveToNext();
         }
+    }
+
+    private void scheduleNotification(long endtime, ContentValues values) {
+        Intent notificationIntent = new Intent(mContext, NotificationLocal.class);
+        notificationIntent.putExtra(NotificationLocal.NOTIFICATION, values);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
+        alarmManager.cancel(pendingIntent);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, (endtime * 1000), pendingIntent);
+        Log.d("Jay", "Notification set for " + endtime);
     }
 }

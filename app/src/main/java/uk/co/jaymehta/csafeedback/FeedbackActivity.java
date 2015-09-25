@@ -2,36 +2,67 @@ package uk.co.jaymehta.csafeedback;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.provider.BaseColumns;
+import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentTransaction;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
+import android.widget.Toast;
 
 
 public class FeedbackActivity extends Activity implements FeedbackActivityFragment.OnEventSelectedListener {
     private static final String FRAGMENT_LIST = "listFragment";
     private static final String FRAGMENT_PAGE = "pageFragment";
     private String mComment;
+    private boolean dualpane;
+
+    private static final IntentFilter syncIntentFilter = new IntentFilter(DatabaseConstants.SYNC_FINISH);
+
+    private BroadcastReceiver syncBroadcastReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            //Switch to the main app page
+            Log.d("Jay","done frag reload");
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.container, FeedbackActivityFragment.newInstance(), FRAGMENT_LIST)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+                    .commit();
+            unregisterReceiver(syncBroadcastReceiver);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_feedback);
+        dualpane = getResources().getBoolean(R.bool.dual_pane);
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
-                    .replace(R.id.container, FeedbackActivityFragment.newInstance(), FRAGMENT_LIST)
+                    .add(R.id.container, FeedbackActivityFragment.newInstance(), FRAGMENT_LIST)
                     .addToBackStack(null)
                     .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                     .commit();
+        }
+
+        ActionBar actionBar = getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
+        PreferenceManager.setDefaultValues(this, R.xml.prefs, false);
+
+        if(getIntent().hasExtra(NotificationLocal.EVENT_ID_TAG)) {
+            Long eventid = getIntent().getLongExtra(NotificationLocal.EVENT_ID_TAG, 1);
+            onEventSelected(eventid);
         }
     }
 
@@ -50,19 +81,84 @@ public class FeedbackActivity extends Activity implements FeedbackActivityFragme
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
+        if (id == R.id.sync_now) {
+            AccountManager mAccountManager = AccountManager.get(this);
+            Account[] arrayAccounts = mAccountManager.getAccountsByType(AccountConstants.ACCOUNT_TYPE);
+
+            //Double check - there should still only be one CSA account
+            if (arrayAccounts.length==1) {
+                registerReceiver(syncBroadcastReceiver, syncIntentFilter);
+                Toast.makeText(getBaseContext(), "Getting your data\nPlease wait...", Toast.LENGTH_LONG).show();
+                // Force syncadapter to run now so that user has all the information downloaded for first use
+                Bundle settingsBundle = new Bundle();
+                settingsBundle.putBoolean(
+                        ContentResolver.SYNC_EXTRAS_MANUAL, true);
+                settingsBundle.putBoolean(
+                        ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+
+                getContentResolver().requestSync(arrayAccounts[0], DatabaseConstants.PROVIDER_NAME, settingsBundle);
+                return true;
+            }
+            else {
+                //Must have been an error (more/less than one CSA account) so show error page
+                Intent intent = new Intent(getApplicationContext(), ErrorActivity.class);
+                startActivity(intent);
+                return true;
+            }
+        }
         if (id == R.id.action_settings) {
-            return true;
+            if(dualpane) {
+                getFragmentManager().beginTransaction()
+                        .replace(R.id.container2, new SettingsFragment(), FRAGMENT_PAGE)
+                        .addToBackStack(null)
+                        .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                        .commit();
+            }
+            else {
+                getFragmentManager().beginTransaction()
+                        .replace(R.id.container, new SettingsFragment(), FRAGMENT_PAGE)
+                        .addToBackStack(null)
+                        .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                        .commit();
+            }
         }
 
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onBackPressed() {
+        int count = getFragmentManager().getBackStackEntryCount();
+        Log.d("Jay", "Back stack count = "+count);
+        if(count > 1) {
+            super.onBackPressed();
+        }
+        else {
+            this.moveTaskToBack(true);
+        }
+    }
+
+    @Override
+    public Intent getParentActivityIntent() {
+        onBackPressed();
+        return null;
+    }
+
     public void onEventSelected(long id) {
-        getFragmentManager().beginTransaction()
-                .replace(R.id.container, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
-                .addToBackStack(null)
-                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
-                .commit();
+        if(dualpane) {
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.container2, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
+                    .addToBackStack(null)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                    .commit();
+        }
+        else {
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.container, FeedbackActivityFragment2.newInstance(id), FRAGMENT_PAGE)
+                    .addToBackStack(null)
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                    .commit();
+        }
     }
 
     public void saveDataButtonClicked(Boolean commentAdd, String comment) {
