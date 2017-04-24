@@ -2,6 +2,8 @@ package uk.co.jaymehta.csafeedback;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.accounts.AccountManagerCallback;
+import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.app.AlarmManager;
@@ -29,6 +31,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.crashlytics.android.Crashlytics;
+import com.google.android.gms.iid.InstanceID;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,8 +39,10 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.Objects;
 
 import io.fabric.sdk.android.Fabric;
+
 
 /**
  * Handle the transfer of data between a server and an
@@ -123,12 +128,47 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Is this authtoken for a valid user?
-        String url_checkvalid = AccountConstants.BASE_URL + "post/index.php";
+        String url_checkvalid = AccountConstants.BASE_URL + "api/index.php";
         ContentValues authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
+        authtokenvalues.put("clientsecret", AccountConstants.CLIENT_SECRET);
+        authtokenvalues.put("deviceid", InstanceID.getInstance(mContext).getId());
         String result;
         try {
             result = PostHelper.postRequest(url_checkvalid, authtokenvalues);
+            JSONObject validuserresult = new JSONObject(result);
+
+            boolean validuser = validuserresult.getBoolean("result");
+            if(!validuser) {
+                String errormsg = validuserresult.getString("msg");
+
+                //Result shows that this user should not have access to this system... How odd... Remove their account, maybe a fresh login will help
+                if (errormsg.equals("invalid_user")) {
+                    Log.d("Jay", "SyncAdapter > " + "Invalid user");
+                    mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
+                    //mAccountManager.removeAccountExplicitly(account);
+                    return;
+                }
+
+                //Result shows that user's token has expired (probably hasn't logged in for 3 months), invalidate token and user can re-logon on next app usage
+                if (errormsg.equals("expired_token")) {
+                    Log.d("Jay", "SyncAdapter > " + "Expired token");
+                    mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
+                    return;
+                }
+
+                //Result shows that user's token has expired (probably hasn't logged in for 3 months), invalidate token and user can re-logon on next app usage
+                if (errormsg.equals("new_device")) {
+                    Log.d("Jay", "SyncAdapter > " + "Old token on a new device");
+                    mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
+                    return;
+                }
+
+                //Server gives any other response than this is a valid user - quit
+                if (!errormsg.equals("valid_user")) {
+                    return;
+                }
+            }
         }
         catch (IOException e) {
             Crashlytics.getInstance().core.logException(e);
@@ -136,26 +176,14 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
-
-        //Result shows that this user should not have access to this system... How odd... Remove their account, maybe a fresh login will help
-        if (result.equals("invalid_user")) {
-            Log.d("Jay", "SyncAdapter > " + "Invalid user");
-            mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
-            mAccountManager.removeAccountExplicitly(account);
+        catch (JSONException e) {
+            Crashlytics.getInstance().core.logException(e);
+            e.printStackTrace();
+            Log.d("Jay", "SyncAdapter > " + e.getMessage());
             return;
         }
 
-        //Result shows that user's token has expired (probably hasn't logged in for 3 months), invalidate token and user can re-logon on next app usage
-        if (result.equals("expired_token")) {
-            Log.d("Jay", "SyncAdapter > " + "Expired token");
-            mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
-            return;
-        }
 
-        //Server gives any other response than this is a valid user - quit
-        if (!result.equals("valid_user")) {
-            return;
-        }
 
 
         //Anything after this line - we assume we have received a valid user response from server
@@ -169,27 +197,36 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             //Has it been more than the number of hours specified in AccountConstants since the last authtoken renewal?
             if (tokenRenewed <= System.currentTimeMillis()) {
                 //Yes - get and store new authtoken and invalidate prior one
-                String url_renew_token = AccountConstants.BASE_URL + "post/index.php/welcome/renew_token";
+                String url_renew_token = AccountConstants.BASE_URL + "api/index.php/post/renew_token";
                 Log.d("Jay", "SyncAdapter > " + "Renewing token");
                 try {
                     result = PostHelper.postRequest(url_renew_token, authtokenvalues);
                     Log.d("Jay", "SyncAdapter > " + result);
+
+                    JSONObject authtokenjson = new JSONObject(result);
+
+                    if(authtokenjson.getBoolean("result")) {
+                        mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
+                        mAccountManager.setAuthToken(account, AccountConstants.AUTH_TOKEN_TYPE, authtokenjson.getJSONObject("data").getString("authtoken"));
+                        mAuthToken = authtokenjson.getJSONObject("data").getString("authtoken");
+
+                        //Update datetime after which next renewal can take place
+                        Long newDate = System.currentTimeMillis() + (AccountConstants.HOURS_BETWEEN_RENEW_TOKEN * 3600 * 1000);
+                        SharedPreferences.Editor editor = prefs.edit();
+                        editor.putLong(mContext.getString(R.string.time_since_renew), newDate);
+                        editor.apply();
+                    }
                 } catch (IOException e) {
                     Crashlytics.getInstance().core.logException(e);
                     e.printStackTrace();
                     Log.d("Jay", "SyncAdapter > " + e.getMessage());
                     return;
+                } catch (JSONException e) {
+                    Crashlytics.getInstance().core.logException(e);
+                    e.printStackTrace();
+                    Log.d("Jay", "SyncAdapter > " + e.getMessage());
+                    return;
                 }
-
-                mAccountManager.invalidateAuthToken(AccountConstants.ACCOUNT_TYPE, mAuthToken);
-                mAccountManager.setAuthToken(account, AccountConstants.AUTH_TOKEN_TYPE, result);
-                mAuthToken = result;
-
-                //Update datetime after which next renewal can take place
-                Long newDate = System.currentTimeMillis() + (AccountConstants.HOURS_BETWEEN_RENEW_TOKEN * 3600 * 1000);
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putLong(mContext.getString(R.string.time_since_renew), newDate);
-                editor.apply();
             }
         }
 
@@ -216,6 +253,7 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d("Jay", "SyncAdapter > " + "Syncing items up");
             JSONArray data = cur2Json(c);
             c.close();
+            Log.d("Jay", "SyncAdapter > " + data);
 
             Cursor d = mContentResolver.query(
                     Uri.parse(DatabaseConstants.URL + "feedback"),
@@ -225,16 +263,31 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
                     null
             );
 
-            String url_sync_up = AccountConstants.BASE_URL + "post/index.php/welcome/sync_up";
+            String url_sync_up = AccountConstants.BASE_URL + "api/index.php/post/sync_up";
             authtokenvalues = new ContentValues();
             authtokenvalues.put("authtoken", mAuthToken);
+            authtokenvalues.put("clientsecret", AccountConstants.CLIENT_SECRET);
+            authtokenvalues.put("deviceid", InstanceID.getInstance(mContext).getId());
             authtokenvalues.put("fd_data", data.toString());
             try {
                 String postresponse = PostHelper.postRequest(url_sync_up, authtokenvalues);
-                setItemsAsSynced(d);
-                d.close();
+                JSONObject syncupjson = new JSONObject(postresponse);
+
+                if(syncupjson.getBoolean("result")) {
+                    setItemsAsSynced(d);
+                    d.close();
+                }
+                else {
+                    Crashlytics.getInstance().core.log("Sync up failed: "+syncupjson.getString("msg"));
+                    Log.d("Jay", "Sync up failed: "+syncupjson.getString("msg"));
+                }
             }
             catch (IOException e) {
+                Crashlytics.getInstance().core.logException(e);
+                e.printStackTrace();
+                Log.d("Jay", "SyncAdapter > " + e.getMessage());
+            }
+            catch (JSONException e) {
                 Crashlytics.getInstance().core.logException(e);
                 e.printStackTrace();
                 Log.d("Jay", "SyncAdapter > " + e.getMessage());
@@ -245,9 +298,11 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         //Sync down
         //Get data to store on device
         Log.d("Jay", "SyncAdapter > " + "Sync down");
-        String url_sync_up = AccountConstants.BASE_URL + "post/index.php/welcome/sync_down";
+        String url_sync_up = AccountConstants.BASE_URL + "api/index.php/post/sync_down";
         authtokenvalues = new ContentValues();
         authtokenvalues.put("authtoken", mAuthToken);
+        authtokenvalues.put("clientsecret", AccountConstants.CLIENT_SECRET);
+        authtokenvalues.put("deviceid", InstanceID.getInstance(mContext).getId());
         try {
             result = PostHelper.postRequest(url_sync_up, authtokenvalues);
         }
@@ -258,17 +313,26 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Convert string retrieved into JSON array
-        JSONArray obj;
-        JSONArray fd_obj;
+        JSONArray eventJsonArray;
+        JSONArray feedbackJsonArray;
         try {
-            JSONArray result_json_array = new JSONArray(result);
-            //Log.d("Jay", "JSONArray length = "+String.valueOf(result_json_array.length()));
-            if(result_json_array.length() != 2) {
+            JSONObject syncdownjson = new JSONObject(result);
+            if(!syncdownjson.getBoolean("result")) {
+                Crashlytics.getInstance().core.log("Sync down failed: "+syncdownjson.getString("msg"));
+                Log.d("Jay", "Sync up failed: "+syncdownjson.getString("msg"));
+                return;
+            }
+
+            JSONObject dataJsonObject = syncdownjson.getJSONObject("data");
+            if(dataJsonObject.length() != 2) {
                 mContext.sendBroadcast(new Intent(DatabaseConstants.SYNC_FINISH));
                 return;
             }
-            obj = result_json_array.getJSONArray(0);
-            fd_obj = result_json_array.getJSONArray(1);
+            //Events from server
+            eventJsonArray = dataJsonObject.getJSONArray("events");
+
+            //User's feedback from server (e.g. another device)
+            feedbackJsonArray = dataJsonObject.getJSONArray("feedback");
         } catch (Throwable t) {
             Crashlytics.getInstance().core.logException(t);
             t.printStackTrace();
@@ -277,12 +341,12 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         //Convert JSONArray into ContentValues, delete existing entries, and insert each newly downloaded one
-        for (int i = 0, size = obj.length(); i < size; i++)
+        for (int i = 0, size = eventJsonArray.length(); i < size; i++)
         {
             ContentValues toinsert = new ContentValues();
             JSONObject objectInArray;
             try {
-                objectInArray = obj.getJSONObject(i);
+                objectInArray = eventJsonArray.getJSONObject(i);
             }
             catch (JSONException e) {
                 Crashlytics.getInstance().core.logException(e);
@@ -294,8 +358,10 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             for (int j = 0, size2 = elementNames.length(); j < size2; j++)
             {
                 try {
-                    //Convert JSONArray to ContentValues
-                    toinsert.put(elementNames.getString(j), objectInArray.getString(elementNames.getString(j)));
+                    //Convert JSONArray to ContentValues, ignore lecturers field for now
+                    if (!elementNames.getString(j).equals("lecturers")) {
+                        toinsert.put(elementNames.getString(j), objectInArray.getString(elementNames.getString(j)));
+                    }
                 }
                 catch (JSONException e) {
                     Crashlytics.getInstance().core.logException(e);
@@ -355,12 +421,12 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
 
         //Convert JSONArray into ContentValues, delete existing entries, and insert each newly downloaded one
         Boolean first = true;
-        for (int i = 0, size = fd_obj.length(); i < size; i++)
+        for (int i = 0, size = feedbackJsonArray.length(); i < size; i++)
         {
             ContentValues toinsert = new ContentValues();
             JSONObject objectInArray;
             try {
-                objectInArray = fd_obj.getJSONObject(i);
+                objectInArray = feedbackJsonArray.getJSONObject(i);
             }
             catch (JSONException e) {
                 Crashlytics.getInstance().core.logException(e);

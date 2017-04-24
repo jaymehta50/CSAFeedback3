@@ -11,4 +11,5 @@ public class AccountConstants {
     public static final String BASE_HOST = "apps.medschl.cam.ac.uk";
     public static final String BASE_URL = "https://" + BASE_HOST + "/";
     public static final String BASE_RAVEN = "raven.cam.ac.uk";
+    public static final String CLIENT_SECRET = "wovWs6l45oFWRFHNF6ni21erPqYdf9PF";
 }

@@ -18,6 +18,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import com.google.android.gms.iid.InstanceID;
+
 
 public class AccountLoginAct extends AccountAuthenticatorActivity {
 
@@ -89,7 +91,7 @@ public class AccountLoginAct extends AccountAuthenticatorActivity {
             webview.getSettings().setJavaScriptEnabled(true);
             webview.addJavascriptInterface(new JSInterfaceClass(), "Android");
 
-            webview.loadUrl(AccountConstants.BASE_URL + "login/");
+            webview.loadUrl(AccountConstants.BASE_URL + "login/index.php/csafeedback/get/"+AccountConstants.CLIENT_SECRET+"/"+ InstanceID.getInstance(this).getId());
         } catch (Exception e) {
             e.printStackTrace();
             setContentView(R.layout.activity_account_login);
