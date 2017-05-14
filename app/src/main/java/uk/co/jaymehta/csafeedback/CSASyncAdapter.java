@@ -438,8 +438,10 @@ public class CSASyncAdapter extends AbstractThreadedSyncAdapter {
             for (int j = 0, size2 = elementNames.length(); j < size2; j++)
             {
                 try {
-                    //Convert JSONArray to ContentValues
-                    toinsert.put(elementNames.getString(j), objectInArray.getString(elementNames.getString(j)));
+                    //Convert JSONArray to ContentValues, ignore lecturers field for now
+                    if (!elementNames.getString(j).equals("timestamp_comment")) {
+                        toinsert.put(elementNames.getString(j), objectInArray.getString(elementNames.getString(j)));
+                    }
                 }
                 catch (JSONException e) {
                     Crashlytics.getInstance().core.logException(e);
